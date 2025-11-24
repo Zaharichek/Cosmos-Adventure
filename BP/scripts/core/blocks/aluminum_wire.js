@@ -1,6 +1,7 @@
 import { world, system, BlockPermutation } from "@minecraft/server"
-import { get_entity, get_data, location_of_side} from "../matter/electricity.js"
 import machines from "../machines/AllMachineBlocks.js"
+import { get_entity, location_of_side, compare_position } from "../../api/utils.js"
+import { get_data } from "../machines/Machine.js"
 
 function str_pos(location) {
 	if (!location) return
@@ -34,7 +35,15 @@ function getSides(wireOs, permutation, wires){
 		"cosmos:west": {x: loc.x - 1, y: loc.y, z: loc.z}
 	}
 	for(let block in sides){
-		if(sides[block] && !wires.has(JSON.stringify(blocks[block])) && blocks[block]) wires.set(JSON.stringify(blocks[block]), {type: (wireOs.dimension.getBlock(blocks[block]).typeId == "cosmos:aluminum_wire")? "wire": undefined, connected: (wireOs.dimension.getBlock(blocks[block]).typeId != "cosmos:aluminum_wire")? loc: undefined})
+		if(!sides[block] || !blocks[block]) continue;
+		let loc_as_string = JSON.stringify(blocks[block]);
+		let wire_in_map = wires.get(loc_as_string);
+		if(!wire_in_map){
+			wires.set(loc_as_string, {type: (wireOs.dimension.getBlock(blocks[block]).typeId == "cosmos:aluminum_wire")? "wire": undefined, connected: (wireOs.dimension.getBlock(blocks[block]).typeId != "cosmos:aluminum_wire")? loc: undefined})
+		}else if(wire_in_map.connected && !compare_position(loc, wire_in_map.connected)){
+			wire_in_map.slot = "both";
+			wires.set(loc_as_string, wire_in_map);
+		}
 	}
 }
 function wiresDFS(firstWire, perm = firstWire.permutation){
@@ -44,29 +53,36 @@ function wiresDFS(firstWire, perm = firstWire.permutation){
 	getSides(firstWire, perm, wiresWillDone);
 	for(let wire of wiresIterator){
 		let block = firstWire.dimension.getBlock(JSON.parse(wire[0]));
-		if(wire[1].type != "wire" && !block.isAir){
-			let machineEntity = get_entity(block.dimension, block.center(), "cosmos");
-			if(!machineEntity) return;
-			let machineData = get_data(machineEntity);
-			let input = location_of_side(block, machineData.energy_input);
-			let output = location_of_side(block, machineData.energy_output);
-			let final_slot = (input && input.x == wire[1].connected.x && input.y == wire[1].connected.y && input.z == wire[1].connected.z)? "input":
-			(output && output.x == wire[1].connected.x && output.y == wire[1].connected.y && output.z == wire[1].connected.z)? "output":
-			undefined;
-			foundMachines.push([machineEntity.id, final_slot])
-		}else if(!block.isAir){
+		if(wire[1].type == "wire" && !block.isAir){
 			getSides(block, block.permutation, wiresWillDone)
 		}
 	}
+	wiresWillDone.forEach((value, key) => {
+		if(value.type == "wire") return;
+		let block = firstWire.dimension.getBlock(JSON.parse(key));
+		if(block.isAir) return;
+		let machineEntity = get_entity(block.dimension, block.center(), "cosmos");
+		if(!machineEntity) return;
+		
+		let machineData = get_data(machineEntity);
+		let input = location_of_side(block, machineData.energy.input);
+		let output = location_of_side(block, machineData.energy.output);
+		let final_slot = (value.slot == "both")? "both":
+		(input && compare_position(input, value.connected))? "input":
+		(output && compare_position(output, value.connected))? "output":
+		undefined;
+
+		foundMachines.push([machineEntity.id, final_slot])
+	});
 	return foundMachines;
 }
 export function machinesSearch(foundMachines){
 	foundMachines.forEach((element) => {
 		let final = world.getEntity(element[0])
 		let finalData = get_data(final)
-		let inputSide = (finalData.energy_input)? final.dimension.getBlock(location_of_side(final.dimension.getBlock(final.location), finalData.energy_input)):
+		let inputSide = (finalData.energy.input)? final.dimension.getBlock(location_of_side(final.dimension.getBlock(final.location), finalData.energy.input)):
 		undefined;
-		let outputSide = (finalData.energy_output)? final.dimension.getBlock(location_of_side(final.dimension.getBlock(final.location), finalData.energy_output)):
+		let outputSide = (finalData.energy.output)? final.dimension.getBlock(location_of_side(final.dimension.getBlock(final.location), finalData.energy.output)):
 		undefined;
 		
 		let connectedInputSide = (inputSide && !inputSide.isAir && inputSide.typeId == 'cosmos:aluminum_wire')? wiresDFS(inputSide): undefined;
@@ -98,11 +114,11 @@ const opposite_side = {
 // this function takes a Block (A Machine Block)
 export function attach_to_wires(block) {
 	const machine_type = block.typeId.split(':').pop()
-	if (!Object.keys(machines).includes(machine_type)) return
+	if (!Object.keys(machines).includes(machine_type) || !machines[machine_type].energy) return
 	const machine = machines[machine_type]
 	const connections = [
-		location_of_side(block, machine.energy_input),
-		location_of_side(block, machine.energy_output)
+		location_of_side(block, machine.energy.input),
+		location_of_side(block, machine.energy.output)
 	]
 	for (const connection of connections) {
 		if (!connection) continue
@@ -110,9 +126,9 @@ export function attach_to_wires(block) {
 		if (wire.typeId == "cosmos:aluminum_wire") connect_wires(wire)
 	}
 	system.run(() => {
-	let machineOutputWire = (machine.energy_output)? block.dimension.getBlock(connections[1]):
+	let machineOutputWire = (machine.energy.output)? block.dimension.getBlock(connections[1]):
 	undefined;
-	let machineInputWire = (machine.energy_input)? block.dimension.getBlock(connections[0]):
+	let machineInputWire = (machine.energy.input)? block.dimension.getBlock(connections[0]):
 	undefined;
 	if(machineOutputWire && !machineOutputWire.isAir && machineOutputWire.typeId == 'cosmos:aluminum_wire') machinesSearch(wiresDFS(machineOutputWire))
 	if(machineInputWire && !machineInputWire.isAir && machineInputWire.typeId == 'cosmos:aluminum_wire') machinesSearch(wiresDFS(machineInputWire))
@@ -131,8 +147,8 @@ function connect_wires(wire) {
 		if (Object.keys(machines).includes(machine_type)) {
 			const machine = machines[machine_type]
 			const connections = [
-				str_pos(location_of_side(block, machine.energy_input)),
-				str_pos(location_of_side(block, machine.energy_output))
+				str_pos(location_of_side(block, machine.energy.input)),
+				str_pos(location_of_side(block, machine.energy.output))
 			]
 			if (connections.includes(str_pos(wire.location))) states[same_side[side]] = true
 		}
@@ -141,14 +157,14 @@ function connect_wires(wire) {
 	system.run(() => {machinesSearch(wiresDFS(wire))});
 }
 
-world.beforeEvents.worldInitialize.subscribe(({ blockComponentRegistry }) => {
+system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 	blockComponentRegistry.registerCustomComponent('cosmos:aluminum_wire', {
 		onPlace({block}) {
 			connect_wires(block)
 		},
-		onPlayerDestroy(event){
+		onPlayerBreak(event){
 			detach_wires(event.block)
-			machinesSearch(wiresDFS(event.block, event.destroyedBlockPermutation))
+			machinesSearch(wiresDFS(event.block, event.brokenBlockPermutation))
 		}
 	})
 })

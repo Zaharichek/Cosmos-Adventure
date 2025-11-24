@@ -1,130 +1,118 @@
-import { world } from "@minecraft/server";
-import AllMachineBlocks from "../machines/AllMachineBlocks"
-import { compare_position, floor_position } from "../../api/utils";
-export function get_data(machine) { return AllMachineBlocks[machine.typeId.replace('cosmos:', '')] }
-function str(object) { return JSON.stringify(object) }
-function say(message = 'yes') { world.sendMessage('' + message) }
+import { world, system } from "@minecraft/server";
+import { compare_position, get_entity, load_dynamic_object, save_dynamic_object, location_of_side } from "../../api/utils";
+import { get_data } from "../machines/Machine";
+
 export class MachinesInNetwork {
 	constructor(machine) {
 		this.machine = machine;
 	}
 	getInputMachines() {
-		if (this.machine.getDynamicProperty("input_connected_machines")) return JSON.parse(this.machine.getDynamicProperty("input_connected_machines"))
-		return undefined;
+		const inputs = this.machine.getDynamicProperty("input_connected_machines")
+		if (inputs) return JSON.parse(inputs)
 	}
 	getOutputMachines() {
-		if (this.machine.getDynamicProperty("output_connected_machines")) return JSON.parse(this.machine.getDynamicProperty("output_connected_machines"))
-		return undefined;
+		const outputs = this.machine.getDynamicProperty("output_connected_machines")
+		if (outputs) return JSON.parse(outputs)
 	}
-}
-export function get_entity(dimension, location, family) {
-	if (!location) return
-	return dimension.getEntities({
-		families: [family],
-		location: {
-			x: Math.floor(location.x) + 0.5,
-			y: Math.floor(location.y) + 0.5,
-			z: Math.floor(location.z) + 0.5,
-		},
-		maxDistance: 0.5,
-	})[0]
-}
+} 
 
 export function charge_from_machine(entity, block, energy) {
-	const data = get_data(entity)
-	let connectedMachines = new MachinesInNetwork(entity).getInputMachines();
-	if (connectedMachines && connectedMachines.length > 0 && energy < data.capacity) {
-		for (let input_entity_id of connectedMachines) {
-			if (world.getEntity(input_entity_id[0]) && input_entity_id[0] != entity.id && input_entity_id[1] == "output") {
-				let input_entity = world.getEntity(input_entity_id[0])
-				const lore = input_entity.getDynamicProperty("cosmos_power")
-				let power = lore ? + lore : 0
-				let inputs = connectedMachines.filter((input) =>
-					input[1] == "input"
-				)
-				power = (inputs.length > 0) ? Math.floor(power / (inputs.length + 1)) :
-					power;
-				const space = data.capacity - energy
-				if (power > 0) {
-					energy += Math.min(data.maxInput, power, space)
-					if(Math.min(data.maxInput, power, space) && input_entity.typeId.includes('energy_storage')){
-						let final_input_energy = input_entity.getDynamicProperty("cosmos_energy") - power;
-						final_input_energy = Math.max(0, final_input_energy)
-						input_entity.setDynamicProperty("cosmos_energy", final_input_energy)
-						input_entity.setDynamicProperty("cosmos_should_updates", true)
-					}
+	let data = get_data(entity);
+	if(energy == data.energy.capacity) return energy;
+	let machines_in_network = new MachinesInNetwork(entity);
+	let connectedMachines = machines_in_network.getInputMachines();
+	if (connectedMachines && connectedMachines.length > 0) {
+		let inputs = connectedMachines.filter((input) => input[1] != "input" && input[0] != entity.id);
+		let connectedMachinesOutput; let outputs; let output_machines;
+		//so it needed to avoid double slot energy storage connections
+	    if(data.energy.output){
+			connectedMachinesOutput = machines_in_network.getOutputMachines();
+			if(connectedMachinesOutput){ outputs = connectedMachinesOutput.filter((output) => output[0] != entity.id && output[1] !== "output");}
+		}
+		for (let input_entity_id of inputs) {
+			let input_entity = world.getEntity(input_entity_id[0])
+			if(!input_entity) continue;
+			//just a fun thing for bugfix
+			if(outputs?.length > 0 && data.energy.output && get_data(input_entity).energy.input && outputs.every(element => element[0] == input_entity_id[0])){
+				continue;
+			}
+			let dynamic_object = load_dynamic_object(input_entity);
+			let power = input_entity.getDynamicProperty("cosmos_power") ?? dynamic_object.power ?? 0;
+			power = (inputs.length > 0) ? Math.floor(power/inputs.length) : power;
+			const space = data.energy.capacity - energy
+			if (power > 0){ 
+				energy += Math.min(data.energy.maxInput, power, space)
+				if(dynamic_object.energy){ 
+					dynamic_object.energy -= Math.min(data.energy.maxInput, power, space);
+					save_dynamic_object(input_entity, dynamic_object)
 				}
 			}
 		}
 	} else {
-		const input_location = location_of_side(block, data.energy_input)
+		const input_location = location_of_side(block, data.energy.input)
 		const input_entity = get_entity(entity.dimension, input_location, "has_power_output")
-		if (input_entity && energy < data.capacity) {
-			const input_block = entity.dimension.getBlock(input_location)
-			const input_data = get_data(input_entity)
-			const lore = input_entity.getDynamicProperty("cosmos_power")
-			const power = lore ? + lore : 0
-			const space = data.capacity - energy
-			const io = location_of_side(input_block, input_data.energy_output)
-			if (compare_position(floor_position(entity.location), io) && power > 0) {
-				energy += Math.min(data.maxInput, power, space)
-				if(Math.min(data.maxInput, power, space) !== 0 && input_entity.typeId.includes('energy_storage')){
-					let final_input_energy = input_entity.getDynamicProperty("cosmos_energy") - power;
-					final_input_energy = Math.max(0, final_input_energy)
-					input_entity.setDynamicProperty("cosmos_energy", final_input_energy)
-					input_entity.setDynamicProperty("cosmos_should_updates", true)
-				}
+		if(!input_entity) return energy;
+		const input_block = entity.dimension.getBlock(input_location)
+		const input_data = get_data(input_entity)
+		let dynamic_object = load_dynamic_object(input_entity);
+		const power = input_entity.getDynamicProperty("cosmos_power") ?? dynamic_object.power ?? 0
+		const space = data.energy.capacity - energy
+		const io = location_of_side(input_block, input_data.energy.output)
+		if (compare_position(entity.location, io) && power > 0) {
+			energy += Math.min(data.energy.maxInput, power, space)
+			if (input_data.energy) {
+				dynamic_object.energy -= Math.min(data.energy.maxInput, power, space);
+				save_dynamic_object(input_entity, dynamic_object)
 			}
 		}
 	} return energy
 }
+export function charge_from_battery(entity, energy, slot) {
+	const data = get_data(entity)
+	const container = entity.getComponent('minecraft:inventory').container
+	const battery = container.getItem(slot);
+	if (battery && energy < data.energy.capacity){
+		let durability = battery.getComponent('minecraft:durability');
 
-export function charge_from_battery(machine, energy, slot) {
-	const data = get_data(machine)
+		let battery_capacity = (durability)? durability.maxDurability - durability.damage: 0;
+		if (battery_capacity > 0 && battery.typeId == "cosmos:battery") {
+			let charge = battery_capacity;
+			const space = data.energy.capacity - energy;
+			energy += Math.min(data.energy.maxInput, 200, charge, space)
+			charge -= Math.min(data.energy.maxInput, 200, charge, space)
+			container.setItem(slot, update_battery(battery, charge))
+		}
+		else if (battery.typeId == "cosmos:atomic_battery") {
+			const space = data.energy.capacity - energy
+			energy += Math.min(data.energy.maxInput, 7, space)
+		}
+		else if (battery.typeId == "cosmos:creative_battery") {
+			const space = data.energy.capacity - energy
+			energy += Math.min(data.energy.maxInput, 200, space)
+		}
+	} return energy
+}
+
+export function charge_battery(machine, energy, slot) {
 	const container = machine.getComponent('minecraft:inventory').container
-	const battery = container.getItem(slot)
-	if (battery && energy < data.capacity && (battery.getDynamicProperty('energy') ?? 0) > 0) {
-		let charge = battery.getDynamicProperty('energy') ?? 0
-		const space = data.capacity - energy
-		energy += Math.min(data.maxInput, 200, charge, space)
-		charge -= Math.min(data.maxInput, 200, charge, space)
+	const battery = container.getItem(slot);
+	let durability = battery?.getComponent('minecraft:durability');
+	let battery_capacity = (durability)? durability.maxDurability - durability.damage: 0;
+
+	if (battery && battery.typeId == "cosmos:battery" && energy > 0 && battery_capacity < 15000) {
+		let charge = battery_capacity;
+		const space = 15000 - charge
+		charge += Math.min(200, energy, space)
+		energy -= Math.min(200, energy, space)
 		container.setItem(slot, update_battery(battery, charge))
 	} return energy
 }
 
-const TURN_BY = {
-	front: 0,
-	left: Math.PI / 2,
-	back: Math.PI,
-	right: -Math.PI / 2,
-}
-const ROTATE_BY = {
-	west: 0,
-	north: Math.PI / 2,
-	east: Math.PI,
-	south: -Math.PI / 2,
-}
-
-// this function takes a Block and a Side (above, below, left, right, back, or front) and returns a location {x, y, z}
-export function location_of_side(block, side) {
-	if (!block || !block.isValid() || !side) return
-	const { location, permutation } = block
-	if (side == "above") return location.y += 1, location
-	if (side == "below") return location.y -= 1, location
-	const facing = permutation.getState("minecraft:cardinal_direction")
-	if (!facing) return
-	const direction = ROTATE_BY[facing]
-	location.x += Math.round(Math.cos(direction + TURN_BY[side]))
-	location.z += Math.round(Math.sin(direction + TURN_BY[side]))
-	return location
-}
-
-
 export function update_battery(battery, charge) {
+	if (battery.typeId != "cosmos:battery") return battery
 	battery.setLore([`§r§${Math.floor(charge) >= 10000 ? '2' :
 			Math.floor(charge) < 5000 ? '4' : '6'
 		}${Math.floor(charge)} gJ/15,000 gJ`])
 	battery.getComponent('minecraft:durability').damage = 15000 - Math.floor(charge)
-	battery.setDynamicProperty('energy', Math.floor(charge))
 	return battery
 }
