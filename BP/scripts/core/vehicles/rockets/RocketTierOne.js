@@ -2,7 +2,7 @@ import { system } from "@minecraft/server"
 import { start_countdown, dismount} from "../../../api/player/liftoff";
 import { start_celestial_selector } from "../../../api/player/celestial_selector";
 import { load_dynamic_object } from "../../../api/utils";
-
+export const aboba = "sosal";
 export default class{
     constructor(entity, block) {
         this.entity = entity;
