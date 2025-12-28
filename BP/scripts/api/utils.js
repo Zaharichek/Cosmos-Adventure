@@ -98,7 +98,6 @@ export const pickaxes = new Set([
 	"minecraft:diamond_pickaxe",
 	"minecraft:netherite_pickaxe",
 ])
-console.warn(pickaxes)
 
 // export function delay(ticks) {
 //     return new Promise(res => system.runTimeout(res, ticks * 20));

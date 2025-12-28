@@ -55,7 +55,7 @@
         "first_person_crossbow_equipped": "animation.player.first_person.crossbow_equipped",
         "third_person_crossbow_equipped": "animation.player.crossbow_equipped",
         "third_person_bow_equipped": "animation.player.bow_equipped",
-        //"first_person_breathing_bob": "animation.player.first_person.breathing_bob",
+        "first_person_breathing_bob": "animation.player.first_person.breathing_bob",
         "first_person_melee_spear_use": "animation.player.first_person.melee_spear_use",
         "first_person_melee_spear_hold": "animation.player.first_person.melee_spear_hold",
         "first_person_melee_spear_attack": "animation.player.first_person.melee_spear_attack",
@@ -72,9 +72,9 @@
         "tooting_goat_horn": "animation.humanoid.tooting_goat_horn",
         "holding_brush": "animation.humanoid.holding_brush",
         "brushing": "animation.humanoid.brushing",
-        //"cosmos_player_hold": "animation.player.cosmos_player_hold",
-        "parachute_hold": "animation.player.parachute_hold"
-        //"frequency": "animation.frequency.radar"
+        "cosmos_player_hold": "animation.player.cosmos_player_hold",
+        "parachute_hold": "animation.player.parachute_hold",
+        "frequency": "animation.frequency.radar"
       },
       "enable_attachables": true,
       "geometry": {
