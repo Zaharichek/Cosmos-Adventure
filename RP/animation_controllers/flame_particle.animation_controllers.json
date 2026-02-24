@@ -1,0 +1,31 @@
+{
+    "format_version": "1.10.0",
+    "animation_controllers": {
+        "controller.animation.rocket_tier_1.flame_particle": {
+            "initial_state": "default",
+            "states": {
+                "default": {
+                    "transitions": [
+                        {
+                            "flame": "query.property('cosmos:launched')"
+                        }
+                    ]
+                },
+                "flame": {
+                    "animations": ["spawn_flame"],
+                    "particle_effects": [
+                    {
+                        "effect": "launch_flame",
+                        "pre_effect_script": "t.rot_yaw = q.property('cosmos:rotation_y'); t.rot_pitch = q.property('cosmos:rotation_y'); t.sin_pitch = math.sin(t.rot_pitch); v.mot_x = math.cos(t.rot_yaw) * t.sin_pitch; v.mot_z = math.sin(t.rot_yaw) * t.sin_pitch; v.mot_y = math.cos((t.rot_pitch - 180));"
+                    }
+                    ],
+                    "transitions": [
+                        {
+                            "default": "!query.property('cosmos:launched')"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

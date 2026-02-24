@@ -23,7 +23,9 @@ world.afterEvents.worldLoad.subscribe(() => {
             //manage oxygen
             if(!(currentTick % 20) && tags.includes("ableToOxygen") && !tags.includes("oxygen_hunger") && player.getGameMode() == "Survival" && !is_entity_in_a_bubble(player)) oxygen_spending(player)
             //manage asteroids falling in the moon
-            if(tags.includes("in_space")) throw_meteors(player)
+            if(tags.includes("in_space")){
+                throw_meteors(player);
+            }
             //manage dungeon finder
             dungeon_finder_loop(player)
             //manage coordinates
@@ -38,7 +40,9 @@ world.afterEvents.worldLoad.subscribe(() => {
 
 //space player tags removing 
 world.afterEvents.playerSpawn.subscribe((data) => {
-    if(data.player.dimension.id !== "minecraft:the_end") space_tags_removing(data.player)
+    if(data.player.dimension.id !== "minecraft:the_end"){
+        space_tags_removing(data.player)
+    }
     data.player.removeTag("oxygen_hunger");
     data.player.setDynamicProperty("in_celestial_selector")
 });
@@ -50,5 +54,7 @@ world.afterEvents.playerDimensionChange.subscribe((data) => {
         data.player.addTag("in_space");
         data.player.addTag("ableToOxygen");
     }
-    if(data.fromDimension.id == "minecraft:the_end") space_tags_removing(data.player)
+    if(data.fromDimension.id == "minecraft:the_end"){
+        space_tags_removing(data.player);
+    }
 });

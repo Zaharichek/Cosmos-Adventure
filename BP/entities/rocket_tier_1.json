@@ -4,11 +4,22 @@
       "description": {
          "identifier": "cosmos:rocket_tier_1",
          "is_summonable": true,
-         "properties": {
+            "properties": {
                 "cosmos:rotation_x": {
                   "type": "float",
-                  "range": [0.0, 180.0],
-                  "default": 90.0,
+                  "range": [-90.0, 90.0],
+                  "default": 0.0,
+                  "client_sync": true
+                },
+                "cosmos:rotation_y": {
+                    "type": "float",
+                    "range": [0.0, 360.0],
+                    "default": 180.0,
+                    "client_sync": true
+                },
+                "cosmos:launched": {
+                  "type": "bool",
+                  "default": true,
                   "client_sync": true
                 }
             }

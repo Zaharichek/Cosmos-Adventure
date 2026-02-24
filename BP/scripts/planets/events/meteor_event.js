@@ -1,18 +1,19 @@
-import {world, BlockPermutation} from "@minecraft/server";
-import { player_gravity } from "../dimension/gravity";
+import {world, system, BlockPermutation} from "@minecraft/server";
 
-function get_view_distant(player, radius){
-    for(let r of [1, 0.5, 0.35, 0.1]){
+//so it reduces radius if chunks aren't loaded yet
+function reduce_distant(player, radius){
+    for(let r of [1, 0.5, 0.3, 0.1]){
         if(player.dimension.isChunkLoaded({x: player.location.x + Math.floor(radius * r), y: 0, z: player.location.z})){
             radius = Math.floor(radius * r);
             return radius;
-        }else if(r == 0.25) return undefined;
+        }else if(r == 0.1) return undefined;
     }
 }
 export function throw_meteors(player){
-    let cofficient = 10;
+    let cofficient = 1;
     let chance = 5 * 750 * (1/cofficient);
     let dim = player.dimension;
+    //it spanws small meteors
     if(Math.floor(Math.random() * chance) === 0){
         let closest_player = dim.getPlayers({location: player.location, maxDistance: 100, closest: 5, minDistance: 2})[0]
         closest_player = (!closest_player)? player: closest_player;
@@ -21,15 +22,16 @@ export function throw_meteors(player){
         let z = Math.floor(Math.random() * 20) - 10;
         let motX = Math.random() * 2 - 2.5;
         let motZ = Math.random() * 5 - 2.5;
-        x = get_view_distant(closest_player, x);
+        x = reduce_distant(closest_player, x);
         if(!x) return;
-        let floor_x = Math.floor(px)
-        //so it reduces radius if chunks aren't loaded yet
         let meteor = dim.spawnEntity("cosmos:fallen_meteor", {x: px + x, y: 255, z: pz + z})
+        meteor.teleport({x: px + x, y: 355, z: pz + z})
         let projectile = meteor.getComponent("minecraft:projectile");
         projectile.gravity = 0.03999999910593033;
         projectile.shoot({x: motX, y: 0, z: motZ})
+        meteor.applyImpulse({x: motX, y: 0, z: motZ})
     }
+    //is's needed for big ones
     if(Math.floor(Math.random() * chance * 3) === 0){
         let closest_player = dim.getPlayers({location: player.location, maxDistance: 100, closest: 5, minDistance: 2})[0]
         closest_player = (!closest_player)? player: closest_player;
@@ -38,32 +40,39 @@ export function throw_meteors(player){
         let z = Math.floor(Math.random() * 20) - 10;
         let motX = Math.random() * 2 - 2.5;
         let motZ = Math.random() * 5 - 2.5;
-        x = get_view_distant(closest_player, x);
+        x = reduce_distant(closest_player, x);
         if(!x) return;
-        let floor_x = Math.floor(px)
-        //so it reduces radius if chunks aren't loaded yet
-        let meteor = dim.spawnEntity("cosmos:fallen_meteor", {x: px + x, y: 255, z: pz + z})
+        let meteor = dim.spawnEntity("cosmos:fallen_meteor", {x: px + x, y: 255, z: pz + z}, {spawnEvent: "cosmos:big_meteor"})
+        meteor.teleport({x: px + x, y: 355, z: pz + z})
         let projectile = meteor.getComponent("minecraft:projectile");
         projectile.gravity = 0.03999999910593033;
         projectile.shoot({x: motX, y: 0, z: motZ})
+        meteor.applyImpulse({x: motX, y: 0, z: motZ})
     }
 }
 
 world.afterEvents.projectileHitBlock.subscribe(({projectile, dimension}) => {
     if(projectile.typeId == "cosmos:fallen_meteor" && (projectile.location.y <= 255 && projectile.location.y > -64)){
-        dimension.createExplosion(projectile.location, 0.2)
-        dimension.getBlock(projectile.location).setPermutation(
+        dimension.createExplosion(projectile.location, projectile.getComponent("minecraft:scale").value/3 + 2)
+        let {x, y, z} = projectile.location;
+        system.runTimeout(() => {
+            let top_block = dimension.getTopmostBlock({x: x, z: z});
+            top_block.above().setPermutation(
             BlockPermutation.resolve("cosmos:fallen_meteor", {"cosmos:heat_level": 1}));
-        projectile.remove();
+            projectile.remove();
+        }, 10);
     }
 });
+
+
+/*needed for debug purposes
 world.afterEvents.itemUse.subscribe(({source, itemStack}) => {
     if(itemStack?.typeId == 'minecraft:stick'){
         let dim = source.dimension;
         let {x, y, z} = source.location;
-        let meteor = dim.spawnEntity("cosmos:fallen_meteor", {x: x, y: y + 5, z: z})
+        let meteor = dim.spawnEntity("cosmos:fallen_meteor", {x: x, y: y + 5, z: z}, {spawnEvent: "cosmos:big_meteor"})
         let projectile = meteor.getComponent("minecraft:projectile");
         projectile.gravity = 0.03999999910593033;
         projectile.shoot({x: 1, y: 0, z: 1})
     }
-});
+});*/

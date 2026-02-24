@@ -29,6 +29,7 @@ system.beforeEvents.startup.subscribe(({blockComponentRegistry}) => {
             shulkers.forEach(shulker=> shulker.remove())
             
             let planet = Planet.getAll().find(pl => pl.isOnPlanet(location));
+            if(!planet) return;
             let offset = planet.offset(location)
             offset.x = offset.x - 8;
             offset.z = offset.z - 8;

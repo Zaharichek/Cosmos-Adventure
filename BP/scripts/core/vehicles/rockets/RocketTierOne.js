@@ -17,11 +17,6 @@ export default class{
         .find(rider => rider.typeId == "minecraft:player")
         const active = rocket.getDynamicProperty('active');
         const launched = rocket.getDynamicProperty("rocket_launched");
-        //explode when the rocket stops after laucnching
-        if (launched && rocket.getVelocity().y == 0) {
-            rocket.dimension.createExplosion(rocket.location, 10, {causesFire: true, breaksBlocks: true})
-            rocket.remove()
-        }
         //start the celestial selector when the rocket reaches space
         if (active && rocket.location.y > 1200) {
             const current_rider = rocket.getComponent('minecraft:rideable').getRiders()

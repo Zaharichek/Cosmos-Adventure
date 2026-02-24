@@ -1,0 +1,22 @@
+{
+    "format_version": "1.20.20",
+    "minecraft:feature_rules": {
+        "description": {
+            "identifier": "cosmos:station_rule",
+            "places_feature": "cosmos:station_feature"
+        },
+        "conditions": {
+            "placement_pass": "first_pass",
+			"minecraft:biome_filter": {
+				"test": "has_biome_tag",
+				"value": "the_end"
+			}
+        },
+        "distribution": {
+            "iterations": "Math.mod(v.originx, 5000) == 0 && Math.mod(v.originz, 5000) == 0 && v.originz > 100000 && v.originz < 150000 && v.originx > 50000 && v.originx < 100000",
+            "x": 0,
+            "y": 64,
+            "z": 0
+        }
+    }
+}
