@@ -16,7 +16,7 @@
                     "particle_effects": [
                     {
                         "effect": "launch_flame",
-                        "pre_effect_script": "t.rot_yaw = q.property('cosmos:rotation_y'); t.rot_pitch = q.property('cosmos:rotation_y'); t.sin_pitch = math.sin(t.rot_pitch); v.mot_x = math.cos(t.rot_yaw) * t.sin_pitch; v.mot_z = math.sin(t.rot_yaw) * t.sin_pitch; v.mot_y = math.cos((t.rot_pitch - 180));"
+                        "locator": "engine"
                     }
                     ],
                     "transitions": [
