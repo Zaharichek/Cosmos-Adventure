@@ -21,8 +21,14 @@
 					"pivot": [0, 25, 0]
 				},
 				{
-					"name": "entity1",
+					"name": "rotation_bone",
 					"parent": "entity_1",
+					"pivot": [0, 0, 0],
+					"rotation": [0, -90, 0]
+				},
+				{
+					"name": "entity1",
+					"parent": "rotation_bone",
 					"pivot": [0, 1, -1],
 					"cubes": [
 						{
@@ -297,9 +303,6 @@
 				{
 					"name": "engine",
 					"parent": "entity1",
-					"locators":{
-						"engine": [0.0, 0.0, 0.0]
-					},
 					"pivot": [0, 0, 0],
 					"cubes": [
 						{
@@ -314,11 +317,14 @@
 								"down": {"uv": [42, 14], "uv_size": [-14, -14]}
 							}
 						}
-					]
+					],
+					"locators": {
+						"engine": [0, 0, 0]
+					}
 				},
 				{
 					"name": "entity2",
-					"parent": "entity_1",
+					"parent": "rotation_bone",
 					"pivot": [0, 1, -1],
 					"cubes": [
 						{
@@ -385,7 +391,7 @@
 				},
 				{
 					"name": "entity3",
-					"parent": "entity_1",
+					"parent": "rotation_bone",
 					"pivot": [1, 1, 0],
 					"rotation": [0, -90, 0],
 					"cubes": [
@@ -453,7 +459,7 @@
 				},
 				{
 					"name": "entity4",
-					"parent": "entity_1",
+					"parent": "rotation_bone",
 					"pivot": [0, 1, 1],
 					"rotation": [-180, 0, 180],
 					"cubes": [
@@ -521,7 +527,7 @@
 				},
 				{
 					"name": "entity5",
-					"parent": "entity_1",
+					"parent": "rotation_bone",
 					"pivot": [-1, 1, 0],
 					"rotation": [0, 90, 0],
 					"cubes": [

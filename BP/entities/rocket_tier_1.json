@@ -14,14 +14,25 @@
                 "cosmos:rotation_y": {
                     "type": "float",
                     "range": [0.0, 360.0],
-                    "default": 180.0,
+                    "default": 0.0,
                     "client_sync": true
                 },
                 "cosmos:launched": {
                   "type": "bool",
-                  "default": true,
+                  "default": false,
                   "client_sync": true
-                }
+                },
+               "cosmos:planet": {
+                  "type": "bool",
+                  "default": false,
+                  "client_sync": true
+                },
+               "cosmos:planet_scale": {
+                    "type": "float",
+                    "range": [0.0, 1.5],
+                    "default": 1.0,
+                    "client_sync": true
+               }
             }
       },
         "component_groups": {
@@ -48,7 +59,13 @@
                "container_type": "chest_boat",
                "inventory_size": 56
             }
-			}
+			},
+         "disabled_gravity": {
+            "minecraft:physics": {
+               "has_gravity": false,
+               "has_collision": true
+            }
+         }
    },
       "components": {       
          "minecraft:collision_box": {
@@ -123,7 +140,12 @@
                 "add":{
                     "component_groups": ["inv54"]
             }
-         }
+         },
+         "cosmos:disable_gravity": {
+                "add":{
+                    "component_groups": ["disabled_gravity"]
+                  }
+            }
       }
    }
 }

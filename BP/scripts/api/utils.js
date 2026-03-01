@@ -121,3 +121,18 @@ export function compare_position(a, b) {
 export function floor_position({ x, y, z }) {
 	return { x: Math.floor(x), y: Math.floor(y), z: Math.floor(z) };
 }
+
+//needs to be moved to addon settings after manifest v3 release
+mc.system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
+	customCommandRegistry.registerCommand({name: "cosmos:render_distance", 
+		cheatsRequired: false, 
+		description: "Changes the Script Render Distance", 
+		permissionLevel: 1,
+	    mandatoryParameters: [{ type: mc.CustomCommandParamType.Integer, name: "chunks" }]
+	}, 
+	(CustomCommandOrigin, chunks) => {
+		if(CustomCommandOrigin.sourceType == "Entity" && CustomCommandOrigin.sourceEntity.typeId == "minecraft:player"){
+			mc.world.setDynamicProperty("render_distance", chunks);
+		}
+	});
+});

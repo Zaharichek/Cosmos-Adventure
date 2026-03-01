@@ -1,4 +1,4 @@
-import { system } from "@minecraft/server"
+import { system, MolangVariableMap} from "@minecraft/server"
 import { start_countdown, dismount} from "../../../api/player/liftoff";
 import { start_celestial_selector } from "../../../api/player/celestial_selector";
 import { load_dynamic_object } from "../../../api/utils";
@@ -23,6 +23,8 @@ export default class{
             .find(rider => rider.typeId == "minecraft:player")
             if (current_rider && !rocket.getDynamicProperty("freezed")){
                 rocket.setDynamicProperty("freezed", true)
+                rocket.setProperty("cosmos:launched", false)
+                rocket.triggerEvent("cosmos:disable_gravity")
                 start_celestial_selector(current_rider)
             }
         }
@@ -61,6 +63,10 @@ export default class{
             rider.setDynamicProperty('in_the_rocket', rocket.id)
             //display the countdown timer
             if (!active) rider.onScreenDisplay.setTitle('§c20', {fadeInDuration: 0, fadeOutDuration: 0, stayDuration: 20000})
+        }
+        if (fuel === 0 && launched && !rocket.getDynamicProperty("freezed") && !rocket.getProperty("cosmos:launched") && rocket.getVelocity().y == 0) {
+            rocket.dimension.createExplosion(rocket.location, 10, {causesFire: true, breaksBlocks: true})
+            rocket.remove()
         }
         //fix the camera and remove the countdown if the player leaves 
         system.runTimeout(() => {

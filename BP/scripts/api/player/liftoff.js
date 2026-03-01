@@ -1,4 +1,4 @@
-import { world, system, ItemStack, BlockPermutation } from "@minecraft/server";
+import { world, system, ItemStack, BlockPermutation, MolangVariableMap } from "@minecraft/server";
 import { moon_lander } from "../../core/vehicles/landers/MoonLander";
 import { place_parachest } from "../../core/machines/blocks/Parachest";
 import { save_dynamic_object, load_dynamic_object } from "../utils";
@@ -111,7 +111,9 @@ world.afterEvents.playerDimensionChange.subscribe((data) => {
 export function start_countdown(rocket, player) {
     rocket.setDynamicProperty('active', true)
     player.inputPermissions.setPermissionCategory(2, false)
-    let countdown = player.getGameMode() == 'Creative' ? 1 : 20
+    //player.playSound("rocket.launch") this does'nt works because of camera thing 
+    let countdown = player.getGameMode() == 'Creative' ? 20 : 20
+    rocket.dimension.spawnParticle("cosmos:rocket_smoke", {x: rocket.location.x, y: rocket.location.y + 1.1, z: rocket.location.z});
     const counter = system.runInterval(()=> {
         if (!rocket || !rocket.isValid) {
             system.clearRun(counter)
@@ -153,8 +155,8 @@ export function rocket_rotation(player, rocket){
    input_y = Math.round(input_y);
 
    let rotation = {x: rocket.getProperty("cosmos:rotation_x"), y: rocket.getProperty("cosmos:rotation_y")};
-   rotation.x = Math.min(Math.max(rotation.x + (input_y * 0.7), -90), 90);
-   rotation.y = rotation.y + (input_x * 1);
+   rotation.x = Math.min(Math.max(rotation.x + -(input_y * 0.7), -90), 90);
+   rotation.y = rotation.y + -(input_x * 1);
 
     rotation.y = (rotation.y > 360)? 0: (rotation.y < 0)? 360:
     rotation.y;
@@ -168,14 +170,15 @@ export function rocket_motion(time_since_launch, rotation){
 
     velocity.x = -(50 * Math.cos(rotation.y/57.2957795147) * Math.sin(rotation.x * 0.01/57.2957795147));
     velocity.z = -(50 * Math.sin(rotation.y/57.2957795147) * Math.sin(rotation.x * 0.01/57.2957795147));
-    console.warn(velocity.z, velocity.x, rotation.x, rotation.y)
     return velocity;
 }
 export function rocket_flight(rocket) {
     if (!rocket || !rocket.isValid) return
     let t = 0;
+    //enables flight particles
+    rocket.setProperty("cosmos:launched", true)
     let flight = system.runInterval(() => {
-        if(!rocket || !rocket.isValid || rocket.getComponent("minecraft:rideable").getRiders().length === 0){
+        if(!rocket || !rocket.isValid || rocket.getComponent("minecraft:rideable").getRiders().length === 0 || rocket.getDynamicProperty("freezed")){
             system.clearRun(flight);
             return;
         }
@@ -195,14 +198,26 @@ export function rocket_flight(rocket) {
         let fuel = dynamic_object?.fuel || 0;
         if(!(system.currentTick % 2)){
             fuel = Math.max(0, fuel - 1)
-            save_dynamic_object(rocket, fuel, "vehicle_data");
+            dynamic_object.fuel = fuel;
+            save_dynamic_object(rocket, dynamic_object, "vehicle_data");
         };
         if(!fuel && player.getGameMode() != "Creative"){
+            rocket.setProperty("cosmos:launched", false);
             system.clearRun(flight);
             return;
         }
         rocket.setProperty("cosmos:rotation_y", rotation.y);
         rocket.setProperty("cosmos:rotation_x", rotation.x);
+        let {x, y, z} = rocket.location;
+        let render_distanse = world.getDynamicProperty("render_distance") ?? 5;
+        if(rocket.dimension.id == "minecraft:overworld" && y > render_distanse * 16){
+            let scale = y - 200/1000;
+            scale = 850 * (0.25 - scale / 10000);
+            scale = Math.max(scale, 0.2);
+            scale = scale/200;
+            rocket.setProperty("cosmos:planet", true);
+            rocket.setProperty("cosmos:planet_scale", scale)
+        }
     })
 }
 
