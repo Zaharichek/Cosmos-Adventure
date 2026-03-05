@@ -1,15 +1,29 @@
-import RocketTierOne from "./rockets/RocketTierOne";
+import Rocket from "./rockets/Rocket";
 import MoonLander from "./landers/MoonLander";
+import LandingBalloons from "./landers/LandingBalloons";
 
 export default  {
     "cosmos:rocket_tier_1": {
-		ui: '§r§o§c§k§e§t§_§z§e§r§o',
-		class: RocketTierOne,
-		using_block: false,
+		ui: '§f§u§e§l§',
+		class: Rocket,
+		tier: 1,
+		inventory_index: 2
+
+	},
+	"cosmos:rocket_tier_2": {
+		ui: '§f§u§e§l§',
+		class: Rocket,
+		tier: 2,
+		inventory_index: 2
 	},
 	"cosmos:lander": {
-		ui: '',
+		ui: '§f§u§e§l§_§c§h§e§s§t§',
 		class: MoonLander,
-		using_block: false,
+		inventory_index: 4
+	},
+	"cosmos:landing_balloon": {
+		ui: '§f§u§e§l§_§c§h§e§s§t§',
+		class: LandingBalloons,
+		inventory_index: 4
 	}, 
 }

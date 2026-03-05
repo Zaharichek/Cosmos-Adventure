@@ -4,7 +4,8 @@
       "description": {
          "identifier": "cosmos:ui",
            "menu_category": {
-             "category": "none"
+             "category": "none",
+             "is_hidden_in_commands": false
            }
       },
       "components": {

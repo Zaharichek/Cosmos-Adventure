@@ -5,9 +5,9 @@ export default class{
     constructor(entity, block) {
         this.entity = entity;
         this.block = block;
-        if (entity.isValid) this.lander();
+        if (entity.isValid) this.landing_balloon();
     }
-    lander(){
+    landing_balloon(){
         if(system.currentTick % 10) return;
         let lander = this.entity;
         let inventory = lander.getComponent('minecraft:inventory');
