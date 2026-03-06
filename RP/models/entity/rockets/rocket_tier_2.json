@@ -13,18 +13,17 @@
 			"bones": [
 				{
 					"name": "entity",
-					"pivot": [0, 0, 0],
-					"rotation": [0, -90, 0]
+					"pivot": [0, 24, 0]
 				},
 				{
 					"name": "entity_1",
 					"parent": "entity",
-					"pivot": [0, 0, 0]
+					"pivot": [0, 25, 0]
 				},
 				{
 					"name": "rotation_bone",
 					"parent": "entity_1",
-					"pivot": [0, 0, 0]
+					"pivot": [0, -90, 0]
 				},
 				{
 					"name": "bone45",

@@ -61,7 +61,7 @@ export default class{
         }
         //set the camera and the player in the rocket      
         if (!rider.getDynamicProperty('in_the_rocket')) {
-            rider.camera.setCamera("minecraft:follow_orbit", { radius: 20 })
+            rider.camera.setCamera(data.camera)
             rider.setDynamicProperty('in_the_rocket', rocket.id)
             //display the countdown timer
             if (!active) rider.onScreenDisplay.setTitle('§c20', {fadeInDuration: 0, fadeOutDuration: 0, stayDuration: 20000})

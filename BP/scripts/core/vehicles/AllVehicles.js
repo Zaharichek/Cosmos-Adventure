@@ -7,14 +7,16 @@ export default  {
 		ui: '§f§u§e§l§',
 		class: Rocket,
 		tier: 1,
-		inventory_index: 2
+		inventory_index: 2,
+		camera: "minecraft:follow_orbit"
 
 	},
 	"cosmos:rocket_tier_2": {
 		ui: '§f§u§e§l§',
 		class: Rocket,
 		tier: 2,
-		inventory_index: 2
+		inventory_index: 2,
+		camera: "cosmos:rocket_camera"
 	},
 	"cosmos:lander": {
 		ui: '§f§u§e§l§_§c§h§e§s§t§',

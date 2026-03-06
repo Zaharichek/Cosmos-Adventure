@@ -14,7 +14,7 @@
                 "cosmos:rotation_y": {
                     "type": "float",
                     "range": [0.0, 360.0],
-                    "default": 0.0,
+                    "default": 360.0,
                     "client_sync": true
                 },
                 "cosmos:launched": {

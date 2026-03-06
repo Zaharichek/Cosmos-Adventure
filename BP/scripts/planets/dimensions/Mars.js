@@ -64,6 +64,8 @@ function landing_balloons_motion(player, data, load = true){
     save_dynamic_object(landing_balloons, data.fuel, "vehicle_data")
     landing_balloons.getComponent("minecraft:rideable").addRider(player);
     player.camera.setCamera("minecraft:follow_orbit", { radius: 20 });
+
+    
     player.removeTag("ableToOxygen")
 
     let is_load = load;

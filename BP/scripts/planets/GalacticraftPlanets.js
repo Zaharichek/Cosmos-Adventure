@@ -61,15 +61,11 @@ world.afterEvents.gameRuleChange.subscribe(({rule, value}) => {
 )
 
 world.afterEvents.playerDimensionChange.subscribe((data) => {
-    console.warn(true, data.fromDimension.id)
     if(!data.player.getDynamicProperty('dimension')) return;
-    console.warn(false)
     let player_data = JSON.parse(data.player.getDynamicProperty('dimension'));
-    data.player.setDynamicProperty("dimension");
+    let planet = world.getPlanet(player_data.type);
 
     if(data.fromDimension.id == "minecraft:the_end" && player_data.type !== "overworld"){
-        console.warn(true)
-        let planet = world.getPlanet(player_data.type);
         planet.launching(data.player, player_data, false)
         return;
     }
