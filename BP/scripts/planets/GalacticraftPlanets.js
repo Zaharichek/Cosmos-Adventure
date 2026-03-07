@@ -9,6 +9,7 @@ export class Planet{
         this._range;
         this._time;
         this._center;
+        this._fuelMultiplier;
     }
     get type(){
         return this._type;
@@ -30,6 +31,9 @@ export class Planet{
     }
     get gravity() {
         return this._gravity;
+    }
+    get fuelMultiplier() {
+        return this._fuelMultiplier;
     }
     offset(location) {
         return {

@@ -8,6 +8,7 @@ export default  {
 		class: Rocket,
 		tier: 1,
 		inventory_index: 2,
+		speed: 1,
 		camera: "minecraft:follow_orbit"
 
 	},
@@ -16,6 +17,7 @@ export default  {
 		class: Rocket,
 		tier: 2,
 		inventory_index: 2,
+		speed: 2,
 		camera: "cosmos:rocket_camera"
 	},
 	"cosmos:lander": {

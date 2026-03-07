@@ -10,7 +10,8 @@ export class Mars extends Planet{
         this._type = "mars";
         this._range = { start: { x: -100000, z: 50000 }, end: { x: -50000, z: 100000 } };
         this._gravity =  3.7;
-        this._center = {x: -75000, z: 75000}
+        this._center = {x: -75000, z: 75000};
+        this._fuelMultiplier = 0.9;
     }
     launching(player, data, loaded = false){
         player.runCommand("fog @s push cosmos:mars_fog mars")
