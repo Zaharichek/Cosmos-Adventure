@@ -1,6 +1,7 @@
 import Rocket from "./rockets/Rocket";
 import MoonLander from "./landers/MoonLander";
 import LandingBalloons from "./landers/LandingBalloons";
+import Buggy from "./Buggy";
 
 export default  {
     "cosmos:rocket_tier_1": {
@@ -25,9 +26,14 @@ export default  {
 		class: MoonLander,
 		inventory_index: 4
 	},
-	"cosmos:landing_balloon": {
+	"cosmos:landing_balloons": {
 		ui: '§f§u§e§l§_§c§h§e§s§t§',
 		class: LandingBalloons,
 		inventory_index: 4
 	}, 
+	"cosmos:moon_buggy": {
+		ui: '§f§u§e§l§',
+		class: Buggy,
+		inventory_index: 2
+	}
 }

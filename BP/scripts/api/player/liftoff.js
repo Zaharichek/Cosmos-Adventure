@@ -73,8 +73,7 @@ export function rocket_flight(rocket) {
     if (!rocket || !rocket.isValid) return
     let t = 0;
     let data = get_vehicle_data(rocket);
-    let fuel_multiplier = rocket.getPlanet()?.fuelMultiplier;
-    console.warn(fuel_multiplier)
+    let fuel_multiplier = rocket.getPlanet()?.fuelMultiplier ?? 1;
     //enables flight particles
     rocket.setProperty("cosmos:launched", true)
     let flight = system.runInterval(() => {
@@ -115,8 +114,8 @@ export function rocket_flight(rocket) {
             scale = 850 * (0.25 - scale / 10000);
             scale = Math.max(scale, 0.2);
             scale = scale/200;
-            rocket.setProperty("cosmos:planet", true);
-            rocket.setProperty("cosmos:planet_scale", scale)
+            player.setPropertyOverrideForEntity(rocket, "cosmos:planet", true);
+            player.setPropertyOverrideForEntity(rocket, "cosmos:planet_scale", scale)
         }
     })
 }

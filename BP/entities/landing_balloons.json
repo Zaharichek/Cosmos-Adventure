@@ -131,7 +131,6 @@
             },
             "minecraft:type_family": {
                 "family": [
-                    "rocket",
                     "vehicle"
                 ]
             },
@@ -146,7 +145,7 @@
                 "pull_in_entities": false,
                 "seat_count": 1,
                 "seats": {
-                    "position": [ 0, 0, 0]
+                    "position": [ 0, 0.4, 0]
                 }
             }
         }

@@ -29,8 +29,10 @@ world.afterEvents.worldLoad.subscribe(() => {
 world.afterEvents.entitySpawn.subscribe(({entity}) => {
     if(AllVehicles[entity.typeId]){
         reload_vehicle(entity)
+        let inventory = entity.getComponent("minecraft:inventory");
+        if(!inventory) return;
         let data = get_vehicle_data(entity)
-        let inventory_size = entity.getComponent("minecraft:inventory").inventorySize - data.inventory_index;
+        let inventory_size = inventory.inventorySize - data.inventory_index;
         entity.nameTag = data.ui + rocket_nametags[inventory_size];
     }
 });

@@ -11,6 +11,7 @@ export class Mars extends Planet{
         this._range = { start: { x: -100000, z: 50000 }, end: { x: -50000, z: 100000 } };
         this._gravity =  3.7;
         this._center = {x: -75000, z: 75000};
+        this._time = {length: 24000, day: 12000};
         this._fuelMultiplier = 0.9;
     }
     launching(player, data, loaded = false){
@@ -20,8 +21,7 @@ export class Mars extends Planet{
         if(data.items) saved_rocket_items.set(data.id, data.items);
         
         player.setDynamicProperty('dimension', JSON.stringify(data));
-        if(player.dimension.id == "minecraft:the_end"){ 
-            console.warn(true);
+        if(player.dimension.id == "minecraft:the_end"){
             player.teleport({x: 0, y: 500, z: 0}, {dimension: world.getDimension("overworld")})
             return;
         }
@@ -41,7 +41,6 @@ function get_motion_after_ground_hit(motion, hits){
     return motion;
 }
 function landing_balloons_motion(player, data, load = true){
-    console.warn(player.dimension.id)
     let ground_hits = 0;
     let ground_tick = 0;
     let rotation_pitch_speed = Math.random();
@@ -62,7 +61,6 @@ function landing_balloons_motion(player, data, load = true){
     landing_balloons.triggerEvent("cosmos:lander_gravity_disable");
     player.teleport({x: player.location.x, y: 1000, z: player.location.z});
     landing_balloons.teleport({x: player.location.x, y: 1000, z: player.location.z});
-    save_dynamic_object(landing_balloons, data.fuel, "vehicle_data")
     landing_balloons.getComponent("minecraft:rideable").addRider(player);
     player.camera.setCamera("minecraft:follow_orbit", { radius: 20 });
 
@@ -71,7 +69,7 @@ function landing_balloons_motion(player, data, load = true){
 
     let is_load = load;
     let camera = player.getRotation();
-    system.runTimeout(() => {
+    let t = 0;
     let landing_balloons_flight = system.runInterval(() => {
         if(is_load){
             let new_camera = player.getRotation();
@@ -89,7 +87,8 @@ function landing_balloons_motion(player, data, load = true){
             system.clearRun(landing_balloons_flight);
             return;
         }
-
+        t++;
+        if(t < 40) return;
         rotation_pitch += rotation_pitch_speed;
         rotation_yaw += rotation_yaw_speed;
 
@@ -115,7 +114,7 @@ function landing_balloons_motion(player, data, load = true){
                 dismount(player);
                 landing_balloons.getComponent("minecraft:rideable").ejectRider(player)
                 landing_balloons.triggerEvent("cosmos:rideable_false")
-                
+                save_dynamic_object(landing_balloons, {fuel: data.fuel}, "vehicle_data")
                 set_items_to_vehicle(landing_balloons, size, items_to_set, data.typeId)
                 
                 landing_balloons.triggerEvent("cosmos:lander_gravity_enable")
@@ -132,5 +131,4 @@ function landing_balloons_motion(player, data, load = true){
         landing_balloons.applyImpulse({x: motion.x, y: motion.y, z: motion.z});
 
     });
-    }, 40);
 }

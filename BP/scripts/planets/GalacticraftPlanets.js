@@ -67,6 +67,7 @@ world.afterEvents.gameRuleChange.subscribe(({rule, value}) => {
 world.afterEvents.playerDimensionChange.subscribe((data) => {
     if(!data.player.getDynamicProperty('dimension')) return;
     let player_data = JSON.parse(data.player.getDynamicProperty('dimension'));
+    data.player.setDynamicProperty('dimension');
     let planet = world.getPlanet(player_data.type);
 
     if(data.fromDimension.id == "minecraft:the_end" && player_data.type !== "overworld"){
@@ -80,12 +81,12 @@ world.afterEvents.playerDimensionChange.subscribe((data) => {
 });
 
 //system of cleaning entity that were spawned in night
-const evolved_mobs = ["cosmos:evolved_zombie", "cosmos:evolved_creeper", "cosmos:evolved_skeleton"]
+const evolved_mobs = ["cosmos:evolved_zombie", "cosmos:evolved_creeper", "cosmos:evolved_skeleton", "cosmos:evolved_spider"]
 world.afterEvents.entitySpawn.subscribe(({entity, cause}) => {
     if(entity.isValid && cause == "Spawned" && evolved_mobs.includes(entity.typeId)){
         let planet = entity.getPlanet();
         if(planet && planet.getTimeOfDay() < planet.time.day && !isUnderground(entity)) entity.remove()
-        else if(planet && entity.typeId !== "cosmos:evolved_creeper") entity.addTag("hostile_space_mob")
+        else if(planet && entity.typeId !== "cosmos:evolved_creeper" && entity.typeId !== "cosmos:evolved_spider") entity.addTag("hostile_space_mob")
     }
 });
 

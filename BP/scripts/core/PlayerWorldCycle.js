@@ -56,6 +56,7 @@ world.afterEvents.playerDimensionChange.subscribe((data) => {
         data.player.addTag("ableToOxygen");
     }
     if(data.fromDimension.id == "minecraft:the_end"){
+        data.player.runCommand("fog @s remove mars")
         space_tags_removing(data.player);
     }
 });

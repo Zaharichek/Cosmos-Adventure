@@ -22,7 +22,6 @@ export class Moon extends Planet{
         
         player.setDynamicProperty('dimension', JSON.stringify(data));
         if(player.dimension.id == "minecraft:the_end"){ 
-            console.warn(true);
             player.teleport({x: 0, y: 500, z: 0}, {dimension: world.getDimension("overworld")})
             return;
         }
@@ -56,7 +55,6 @@ function moon_lander(player, data, load = true){
     player.teleport({x: player.location.x, y: 1000, z: player.location.z});
     lander.triggerEvent("cosmos:lander_gravity_disable");
     lander.teleport({x: player.location.x, y: 1000, z: player.location.z});
-    save_dynamic_object(lander, data.fuel, "vehicle_data")
     lander.getComponent("minecraft:rideable").addRider(player);
     player.camera.setCamera("minecraft:follow_orbit", { radius: 20 });
     player.setDynamicProperty("dimension", undefined);
@@ -129,6 +127,7 @@ function moon_lander(player, data, load = true){
                 lander.getComponent("minecraft:rideable").ejectRider(player)
                 lander.triggerEvent("cosmos:rideable_false")
 
+                save_dynamic_object(lander, {fuel: data.fuel}, "vehicle_data")
                 set_items_to_vehicle(lander, size, items_to_set, data.typeId)
 
                 lander.triggerEvent("cosmos:lander_gravity_enable")
