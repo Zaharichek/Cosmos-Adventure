@@ -25,6 +25,7 @@ export default class{
         speed = info.speed;
         speed *= 0.98;
         buggy.setProperty("cosmos:rotation_y", info.rotation);
+        console.warn(info.rotation)
 
         let motion = {x: 0, y: 0, z: 0};
         let velocity = buggy.getVelocity();
