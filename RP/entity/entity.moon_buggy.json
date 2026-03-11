@@ -30,7 +30,7 @@
 			    "pre_animation": [
 			        "v.is_rendered ? {v.body = q.bone_orientation_trs('entity');};",
 			        "v.is_rendered = true;",
-					"t.old_rotation = 180 - v.body.r.y; v.rotation = math.lerprotate(t.old_rotation, 180 - q.property('cosmos:rotation_y'), query.frame_alpha); v.rotation = v.rotation;"
+					"t.old_rotation = (math.floor(v.body.r.z) == 180)? 360 - (v.body.r.y + 90): v.body.r.y + 180; v.rotation = (math.floor(t.old_rotation) == 0)? 67: q.property('cosmos:rotation_y');"
 		        ],
 				"animate": [
 					"rotation"
