@@ -18,30 +18,36 @@ export default class{
         let variables = load_dynamic_object(buggy, "vehicle_data")
         let speed = variables?.speed ?? 0;
         let time_climbing = variables?.time_climbing ?? 0;
+        let time_falling = variables?.time_falling ?? 0;
 
         let rotation = buggy.getProperty("cosmos:rotation_y");
         let wheel_rotation = buggy.getProperty("cosmos:wheel_rotation_x");
-        let info = rotate_buggy(speed, rotation, wheel_rotation, rider.inputInfo.getMovementVector());
+        let info = rotate_buggy(speed, rotation, buggy.getProperty("cosmos:wheel_rotation_y"), rider.inputInfo.getMovementVector());
         speed = info.speed;
         speed *= 0.98;
         buggy.setProperty("cosmos:rotation_y", info.rotation);
-
+        buggy.setProperty("cosmos:wheel_rotation_y", info.wheel_rotation);
         let motion = {x: 0, y: 0, z: 0};
         let velocity = buggy.getVelocity();
         let should_climb = false;
-        motion.x = -(speed * Math.cos((rotation + 90 - info.rotation_coeeficient) / 57.2957795147)); 
-        motion.z = -(speed * Math.sin((rotation + 90 - info.rotation_coeeficient) / 57.2957795147));
-        wheel_rotation += Math.sqrt(motion.x * motion.x + motion.z * motion.z) * 150 * (speed < 0 ? -1 : 1);
-        if(wheel_rotation > 360) wheel_rotation = 0;
-        else if(wheel_rotation < 0) wheel_rotation = 360;
+        let direction = {x: Math.cos((rotation + 90) / 57.2957795147), z: Math.sin((rotation + 90) / 57.2957795147)};
+        motion.x = -(speed * direction.x); 
+        motion.z = -(speed * direction.z);
+        wheel_rotation += Math.sqrt(motion.x * motion.x + motion.z * motion.z) * 75 * (speed < 0 ? -1 : 1);
+        if(wheel_rotation > 360) wheel_rotation = wheel_rotation % 360;
+        else if(wheel_rotation < 0) wheel_rotation = 360 - (Math.abs(wheel_rotation) % 360);
         buggy.setProperty("cosmos:wheel_rotation_x", wheel_rotation);
-
         motion.x -= velocity.x;
         motion.z -= velocity.z;
         if(speed > 0.5) speed = 0.5;
         if(speed > 0.001 || speed.y < 0.001) should_climb = true;
-        let collided_horizontally = buggy.dimension.getBlock({x: buggy.location.x + -Math.cos((rotation + 90) / 57.2957795147), y: buggy.location.y, z: buggy.location.z + -Math.sin((rotation + 90) / 57.2957795147)});
-        if(should_climb && !collided_horizontally.isAir){
+        let collided_horizontally = buggy.dimension.getBlock({x: buggy.location.x + -(direction.x), y: buggy.location.y, z: buggy.location.z + -(direction.z)});
+        
+        if(system.currentTick % 2 == 0 && !buggy.isOnGround) time_falling++
+        else if(buggy.isOnGround) time_falling = 0;
+
+        motion.y = -(Math.min(time_falling**1.5, time_falling*2)*0.07);
+        if(should_climb && !collided_horizontally?.isAir && collided_horizontally.typeId !== "cosmos:buggy_fueling_pad"){
             speed *= 0.9;
             motion.y = 0.15 * ((-Math.pow((time_climbing) - 1, 2)) / 250.0) + 0.30;
         }
@@ -49,18 +55,18 @@ export default class{
         else time_climbing = 0;
         motion.y -= velocity.y;
         buggy.applyImpulse(motion);
-        save_dynamic_object(buggy, {speed, time_climbing}, "vehicle_data");
+        save_dynamic_object(buggy, {speed, time_climbing, time_falling}, "vehicle_data");
     }
 }
 
 function rotate_buggy(speed, rotation, wheel_rotation, input){
-    let rotation_coeeficient = 0;
-    speed += input.y * 0.4/20;
+    speed += input.y * 0.2/10;
     rotation -= input.x * 3;
-    if(input.x < 0) rotation_coeeficient = 12 * Math.abs(input.x);
-    if(input.x > 0) rotation_coeeficient = -12 * Math.abs(input.x);
-    if(rotation > 360)rotation = 0;
+    if(rotation > 360) rotation = 0;
     else if(rotation < 0) rotation = 360;
-    return {rotation, speed, rotation_coeeficient}
+    if(input.x > 0) wheel_rotation = Math.max(-30, Math.min(30, wheel_rotation - 0.5));
+    else if(input.x < 0) wheel_rotation = Math.max(-30, Math.min(30, wheel_rotation + 0.5));
+    wheel_rotation = Math.max(-30, Math.min(30, wheel_rotation * 0.9));
+    return {rotation, speed, wheel_rotation}
 }
 

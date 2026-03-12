@@ -64,10 +64,9 @@ system.beforeEvents.startup.subscribe(({itemComponentRegistry}) => {
 			if (player.dimension.getEntities({ location: block.center(), maxDistance: 1 }).length) return
 
 			const {x, y, z} = block.center()
-			const rotation = Math.round(player.getRotation().y / 90) * 90 + 180
 			const equipment = player.getComponent("minecraft:equippable")
 			let inventory_size = item.getDynamicProperty('inventory_size') || 0;
-			player.runCommand(`summon cosmos:moon_buggy ${x} ${y + 2.5} ${z} ${rotation} 0 ${'cosmos:inv' + inventory_size}`)
+			player.dimension.spawnEntity("cosmos:moon_buggy", {x: x, y: y + 2.5, z: z}, {spawnEvent: 'cosmos:inv' + inventory_size})
 			if (player.getGameMode() != "Creative") equipment.setEquipment("Mainhand", item.decrementStack())
         }
     })

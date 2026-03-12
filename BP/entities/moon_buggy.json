@@ -16,6 +16,12 @@
                   "range": [0.0, 360.0],
                   "default": 0.0,
                   "client_sync": true
+                },
+                "cosmos:wheel_rotation_y": {
+                  "type": "float",
+                  "range": [-30.0, 30.0],
+                  "default": 0.0,
+                  "client_sync": true
                 }
             }
         },
@@ -83,7 +89,7 @@
             "pull_in_entities": false,
             "seat_count": 1,
             "seats": {
-               "position": [0, 0.4, -0.4]
+               "position": [0, 0.4, 0]
             }
          },
          "minecraft:type_family": {
