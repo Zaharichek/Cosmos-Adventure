@@ -5,7 +5,7 @@
 			"loop": true,
 			"bones": {
 				"entity": {
-					"rotation": [0, "v.rotation", 0]
+					"rotation": [0, "v.rotation - 180", 0]
                                 },
 				"wheel_f_right": {
 					"rotation": ["query.property('cosmos:wheel_rotation_x')", 0, 0]

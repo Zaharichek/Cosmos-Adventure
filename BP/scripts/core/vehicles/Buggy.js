@@ -25,13 +25,12 @@ export default class{
         speed = info.speed;
         speed *= 0.98;
         buggy.setProperty("cosmos:rotation_y", info.rotation);
-        console.warn(info.rotation)
 
         let motion = {x: 0, y: 0, z: 0};
         let velocity = buggy.getVelocity();
         let should_climb = false;
-        motion.x = (speed * Math.cos((rotation + 90) / 57.2957795147)); 
-        motion.z = -(speed * Math.sin((rotation + 90) / 57.2957795147));
+        motion.x = -(speed * Math.cos((rotation + 90 - info.rotation_coeeficient) / 57.2957795147)); 
+        motion.z = -(speed * Math.sin((rotation + 90 - info.rotation_coeeficient) / 57.2957795147));
         wheel_rotation += Math.sqrt(motion.x * motion.x + motion.z * motion.z) * 150 * (speed < 0 ? -1 : 1);
         if(wheel_rotation > 360) wheel_rotation = 0;
         else if(wheel_rotation < 0) wheel_rotation = 360;
@@ -41,7 +40,7 @@ export default class{
         motion.z -= velocity.z;
         if(speed > 0.5) speed = 0.5;
         if(speed > 0.001 || speed.y < 0.001) should_climb = true;
-        let collided_horizontally = buggy.dimension.getBlock({x: buggy.location.x + Math.cos((rotation + 90) / 57.2957795147), y: buggy.location.y, z: buggy.location.z + -Math.sin((rotation + 90) / 57.2957795147)});
+        let collided_horizontally = buggy.dimension.getBlock({x: buggy.location.x + -Math.cos((rotation + 90) / 57.2957795147), y: buggy.location.y, z: buggy.location.z + -Math.sin((rotation + 90) / 57.2957795147)});
         if(should_climb && !collided_horizontally.isAir){
             speed *= 0.9;
             motion.y = 0.15 * ((-Math.pow((time_climbing) - 1, 2)) / 250.0) + 0.30;
@@ -55,10 +54,13 @@ export default class{
 }
 
 function rotate_buggy(speed, rotation, wheel_rotation, input){
-    speed += input.y * 0.2/20;
-    rotation += input.x * 3;
-    if(rotation > 360) rotation = 0;
+    let rotation_coeeficient = 0;
+    speed += input.y * 0.4/20;
+    rotation -= input.x * 3;
+    if(input.x < 0) rotation_coeeficient = 12 * Math.abs(input.x);
+    if(input.x > 0) rotation_coeeficient = -12 * Math.abs(input.x);
+    if(rotation > 360)rotation = 0;
     else if(rotation < 0) rotation = 360;
-    return {rotation, speed}
+    return {rotation, speed, rotation_coeeficient}
 }
 
