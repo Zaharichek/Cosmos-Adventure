@@ -8,16 +8,16 @@
 					"rotation": [0, "v.rotation - 180", 0]
                                 },
 				"wheel_f_right": {
-					"rotation": ["query.property('cosmos:wheel_rotation_x')", "query.property('cosmos:wheel_rotation_y')", 0]
+					"rotation": ["query.property('cosmos:wheel_rotation_x')", 0, "query.property('cosmos:wheel_rotation_y')"]
 				},
 				"wheel_f_left": {
-					"rotation": ["query.property('cosmos:wheel_rotation_x')", "query.property('cosmos:wheel_rotation_y')", 0]
+					"rotation": ["query.property('cosmos:wheel_rotation_x')", 0, "query.property('cosmos:wheel_rotation_y')"]
 				},
 				"wheel_b_right": {
-					"rotation": ["query.property('cosmos:wheel_rotation_x')", "query.property('cosmos:wheel_rotation_y')", 0]
+					"rotation": ["query.property('cosmos:wheel_rotation_x')", 0, "query.property('cosmos:wheel_rotation_y')"]
 				},
 				"wheel_b_left": {
-					"rotation": ["query.property('cosmos:wheel_rotation_x')", "query.property('cosmos:wheel_rotation_y')", 0]
+					"rotation": ["query.property('cosmos:wheel_rotation_x')", 0, "query.property('cosmos:wheel_rotation_y')"]
 				}
 			}
 		},

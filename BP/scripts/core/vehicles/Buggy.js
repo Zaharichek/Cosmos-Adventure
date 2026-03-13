@@ -18,7 +18,6 @@ export default class{
         let variables = load_dynamic_object(buggy, "vehicle_data")
         let speed = variables?.speed ?? 0;
         let time_climbing = variables?.time_climbing ?? 0;
-        let time_falling = variables?.time_falling ?? 0;
 
         let rotation = buggy.getProperty("cosmos:rotation_y");
         let wheel_rotation = buggy.getProperty("cosmos:wheel_rotation_x");
@@ -40,32 +39,30 @@ export default class{
         motion.x -= velocity.x;
         motion.z -= velocity.z;
         if(speed > 0.5) speed = 0.5;
-        if(speed > 0.001 || speed.y < 0.001) should_climb = true;
+        if(speed > 0.001 || speed < 0.001) should_climb = true;
         let collided_horizontally = buggy.dimension.getBlock({x: buggy.location.x + -(direction.x), y: buggy.location.y, z: buggy.location.z + -(direction.z)});
-        
-        if(system.currentTick % 2 == 0 && !buggy.isOnGround) time_falling++
-        else if(buggy.isOnGround) time_falling = 0;
 
-        motion.y = -(Math.min(time_falling**1.5, time_falling*2)*0.07);
         if(should_climb && !collided_horizontally?.isAir && collided_horizontally.typeId !== "cosmos:buggy_fueling_pad"){
             speed *= 0.9;
-            motion.y = 0.15 * ((-Math.pow((time_climbing) - 1, 2)) / 250.0) + 0.30;
+            motion.y = 0.15 * ((-Math.pow((time_climbing) - 1, 2)) / 250.0) + 0.15;
+            motion.y = Math.max(-0.15, motion.y);
         }
         if(((motion.x > 0.001 || motion.x < 0.001) || (motion.z > 0.001 || motion.z < 0.001)) && !buggy.isOnGround) time_climbing += 1
-        else time_climbing = 0;
-        motion.y -= velocity.y;
-        buggy.applyImpulse(motion);
-        save_dynamic_object(buggy, {speed, time_climbing, time_falling}, "vehicle_data");
+        else{
+            time_climbing = 0;
+        }
+        if(motion.y >= 0) buggy.applyImpulse(motion);
+        save_dynamic_object(buggy, {speed, time_climbing}, "vehicle_data");
     }
 }
 
 function rotate_buggy(speed, rotation, wheel_rotation, input){
     speed += input.y * 0.2/10;
-    rotation -= input.x * 3;
+    rotation -= input.x * 3.5;
     if(rotation > 360) rotation = 0;
     else if(rotation < 0) rotation = 360;
-    if(input.x > 0) wheel_rotation = Math.max(-30, Math.min(30, wheel_rotation - 0.5));
-    else if(input.x < 0) wheel_rotation = Math.max(-30, Math.min(30, wheel_rotation + 0.5));
+    if(input.x > 0) wheel_rotation = Math.max(-30, Math.min(30, wheel_rotation + 0.5));
+    else if(input.x < 0) wheel_rotation = Math.max(-30, Math.min(30, wheel_rotation - 0.5));
     wheel_rotation = Math.max(-30, Math.min(30, wheel_rotation * 0.9));
     return {rotation, speed, wheel_rotation}
 }
