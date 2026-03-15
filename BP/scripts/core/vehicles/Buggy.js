@@ -26,26 +26,28 @@ export default class{
         speed *= 0.98;
         buggy.setProperty("cosmos:rotation_y", info.rotation);
         buggy.setProperty("cosmos:wheel_rotation_y", info.wheel_rotation);
+
         let motion = {x: 0, y: 0, z: 0};
         let velocity = buggy.getVelocity();
         let should_climb = false;
         let direction = {x: Math.cos((rotation + 90) / 57.2957795147), z: Math.sin((rotation + 90) / 57.2957795147)};
         motion.x = -(speed * direction.x); 
         motion.z = -(speed * direction.z);
-        wheel_rotation += Math.sqrt(motion.x * motion.x + motion.z * motion.z) * 75 * (speed < 0 ? -1 : 1);
+        wheel_rotation += Math.sqrt(motion.x * motion.x + motion.z * motion.z) * 150 * (speed < 0 ? -1 : 1);
         if(wheel_rotation > 360) wheel_rotation = wheel_rotation % 360;
         else if(wheel_rotation < 0) wheel_rotation = 360 - (Math.abs(wheel_rotation) % 360);
         buggy.setProperty("cosmos:wheel_rotation_x", wheel_rotation);
         motion.x -= velocity.x;
         motion.z -= velocity.z;
-        if(speed > 0.5) speed = 0.5;
+        if(speed > 0.8) speed = 0.8;
         if(speed > 0.001 || speed < 0.001) should_climb = true;
-        let collided_horizontally = buggy.dimension.getBlock({x: buggy.location.x + -(direction.x), y: buggy.location.y, z: buggy.location.z + -(direction.z)});
-
-        if(should_climb && !collided_horizontally?.isAir && collided_horizontally.typeId !== "cosmos:buggy_fueling_pad"){
-            speed *= 0.9;
-            motion.y = 0.15 * ((-Math.pow((time_climbing) - 1, 2)) / 250.0) + 0.15;
-            motion.y = Math.max(-0.15, motion.y);
+        if(should_climb){
+            let collided_horizontally = buggy.dimension.getBlockFromRay(buggy.location, {x: -direction.x, y: 0, z: -direction.z}, {maxDistance: 2.5})?.block;
+            if(collided_horizontally && !collided_horizontally.isAir && collided_horizontally.typeId !== "cosmos:buggy_fueling_pad"){
+                speed *= 0.9;
+                motion.y = 0.15 * ((-Math.pow((time_climbing) - 1, 2)) / 250.0) + 0.15;
+                motion.y = Math.max(-0.15, motion.y);
+            }
         }
         if(((motion.x > 0.001 || motion.x < 0.001) || (motion.z > 0.001 || motion.z < 0.001)) && !buggy.isOnGround) time_climbing += 1
         else{
@@ -57,7 +59,7 @@ export default class{
 }
 
 function rotate_buggy(speed, rotation, wheel_rotation, input){
-    speed += input.y * 0.2/10;
+    speed += input.y * 0.4/20;
     rotation -= input.x * 3.5;
     if(rotation > 360) rotation = 0;
     else if(rotation < 0) rotation = 360;

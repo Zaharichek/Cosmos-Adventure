@@ -111,6 +111,7 @@
          "minecraft:type_family": {
             "family": [
                "rocket",
+               "requires_fuel",
                "vehicle"
             ]
          }

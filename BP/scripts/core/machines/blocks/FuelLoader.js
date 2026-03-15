@@ -4,26 +4,34 @@ import { compare_lists, load_dynamic_object, location_of_side, save_dynamic_obje
 import { get_data } from "../Machine.js";
 import { input_fluid, load_from_canister_instant } from "../../matter/fluids.js";
 
-function get_rockets(block){
+const pads = {
+	"cosmos:moon_buggy": "cosmos:buggy_fueling_pad",
+	"cosmos:rocket_tier_1": "cosmos:rocket_launch_pad",
+	"cosmos:rocket_tier_2": "cosmos:rocket_launch_pad",
+	"cosmos:rocket_tier_3": "cosmos:rocket_launch_pad"
+}
+
+function get_vehicles(block){
 	if(!block.location) return;
-    let rockets = []
+	let {x, y, z} = block.location;
+
     let pad_one = location_of_side(block, "front")
     let pad_two = location_of_side(block, "back")
-    pad_one = (pad_one)? block.dimension.getBlock({x: block.location.x + ((pad_one.x - block.location.x) * 2), y: block.location.y, z: block.location.z + ((pad_one.z - block.location.z) * 2)}):
-	undefined;
-    pad_two = (pad_two)? block.dimension.getBlock({x: block.location.x + ((pad_two.x - block.location.x) * 2), y: block.location.y, z: block.location.z + ((pad_two.z - block.location.z) * 2)}):
-	undefined;
-    pad_one = (pad_one && !pad_one.isAir && pad_one.typeId === "cosmos:rocket_launch_pad" && pad_one.permutation.getState("cosmos:center"))? pad_one:
-    undefined;
-    pad_two = (pad_two && !pad_two.isAir && pad_two.typeId === "cosmos:rocket_launch_pad" && pad_two.permutation.getState("cosmos:center"))? pad_two:
-    undefined;
-    let rocket_one = (pad_one)? pad_one.dimension.getEntities({families: ["rocket"], location: pad_one.center(), maxDistance: 2}):
-    [];
-    let rocket_two = (pad_two)? pad_two.dimension.getEntities({families: ["rocket"], location: pad_two.center(), maxDistance: 2}):
-    [];
-    if(rocket_one.length > 0) rockets.push(rocket_one[0])
-    if(rocket_two.length > 0) rockets.push(rocket_two[0])
-    return rockets;
+
+	let offset_1 = {x: (x - pad_one.x) * 2, z: (z - pad_one.z) * 2};
+	let offset_2 = {x: (x - pad_two.x) * 2, z: (z- pad_two.z) * 2};
+
+    pad_one = block.dimension.getBlock({x: x + offset_1.x, y: y, z: z + offset_1.z});
+	pad_two = block.dimension.getBlock({x: x + offset_2.x, y: y, z: z + offset_2.z});
+
+	let vehicles = [];
+	[pad_one, pad_two].forEach((pad) => {
+		if(pad.permutation.getState("cosmos:center")){
+			let vehicle = pad.dimension.getEntities({families: ["requires_fuel"], location: pad.center(), maxDistance: 2})[0];
+			if(vehicle && pads[vehicle.typeId] == pad.typeId) vehicles.push(vehicle);
+		}
+	});
+    return vehicles;
 }
 
 export default class {
@@ -48,17 +56,15 @@ export default class {
 		fuel = input_fluid("fuel", this.entity, this.block, fuel)
 		fuel = load_from_canister_instant(fuel, "fuel", this.entity, 0).amount;
 		if(!stopped && energy > 0 && fuel >= 2 && this.block){
-		    let rockets = get_rockets(this.block)
-		    if(rockets.length > 0){
-		        rockets.forEach((rocket) =>{
-					let rocket_dynamic_object = load_dynamic_object(rocket, "vehicle_data")
-		            let fuel_level = rocket_dynamic_object?.fuel ?? 0;
-		            fuel_level = (fuel_level)? fuel_level:
-		            0;
+		    let vehicles = get_vehicles(this.block)
+		    if(vehicles.length > 0){
+		        vehicles.forEach((vehicle) =>{
+					let vehicle_dynamic_object = load_dynamic_object(vehicle, "vehicle_data")
+		            let fuel_level = vehicle_dynamic_object?.fuel ?? 0;
 		            if(fuel_level < 1000){
 		                let level = Math.min(1000, fuel_level + 2)
-						rocket_dynamic_object.fuel = level;
-		                save_dynamic_object(rocket, rocket_dynamic_object, "vehicle_data");
+						vehicle_dynamic_object.fuel = level;
+		                save_dynamic_object(vehicle, vehicle_dynamic_object, "vehicle_data");
 		                fuel = Math.max(0, fuel - 2)
 		                energy = Math.max(0, energy - 30)
 		            }

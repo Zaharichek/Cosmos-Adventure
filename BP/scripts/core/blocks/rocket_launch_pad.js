@@ -1,25 +1,25 @@
 import { ItemStack, world, system } from "@minecraft/server";
 
-function assemble(block) {
+export function assemble(block, type) {
 	for (let x of [-1, 0, 1]) {
 		for (let z of [-1, 0, 1]) {
 			const target = block.offset({x:x, y:0, z:z})
-			if (target.typeId != "cosmos:rocket_launch_pad") return
+			if (target.typeId != type) return
 			if (target.permutation.getState("cosmos:center")) return
 		}
 	} block.setPermutation(block.permutation.withState( 'cosmos:center', true))
 }
-function destroy(block) {
+export function destroy(block, block_type, item_type, entity_type) {
 	const dimension = block.dimension
-	const rocket = dimension.getEntities({location: block.center(), maxDistance: 1, type: 'cosmos:rocket_tier_1'})[0]
+	const rocket = dimension.getEntities({location: block.center(), maxDistance: 1, type: entity_type})[0]
 	if (rocket) {
 		rocket.remove()
-		dimension.spawnItem(new ItemStack("cosmos:rocket_tier_1_item"), block.center())
+		dimension.spawnItem(new ItemStack(item_type), block.center())
 	}
 	for (let i of [-1, 0, 1]) {
 		for (let j of [-1, 0, 1]) {
 			const target = block.offset({x:i, y:0, z:j})
-			if (target.typeId == "cosmos:rocket_launch_pad") {
+			if (target.typeId == block_type) {
 				const {x, y, z} = target
 				dimension.runCommand(`fill ${x} ${y} ${z} ${x} ${y} ${z} air destroy`)
 			}
@@ -32,13 +32,13 @@ system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 			for (let x of [-1, 0, 1]) {
 				for (let z of [-1, 0, 1]) {
 					const target = block.offset({x:x, y:0, z:z})
-					assemble(target)
+					assemble(target, "cosmos:rocket_launch_pad")
 				}
 			}
 		},
 		onPlayerBreak({block, player, brokenBlockPermutation: pad}) {
 			if (pad.getState("cosmos:center")) {
-				destroy(block); return
+				destroy(block, "cosmos:rocket_launch_pad", "cosmos:rocket_tier_1_item", "cosmos:rocket_tier_1"); return
 			}
 			for (let x of [-1, 0, 1]) {
 				for (let z of [-1, 0, 1]) {

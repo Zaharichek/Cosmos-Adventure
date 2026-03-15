@@ -13,7 +13,7 @@
 				"default": "geometry.moon_buggy"
 			},
 			"render_controllers": [
-				"controller.render.rocket"
+				"controller.render.buggy"
 			],
 			"enable_attachables": false,
 			"hide_armor": true,
@@ -25,7 +25,8 @@
 
                     "v.body = v.trs_struct;",
 
-                    "v.is_rendered = false;"
+                    "v.is_rendered = false;",
+					"v.container_number = q.property('cosmos:container_number');"
 			    ],
 			    "pre_animation": [
 			        "v.is_rendered ? {v.body = q.bone_orientation_trs('entity');};",

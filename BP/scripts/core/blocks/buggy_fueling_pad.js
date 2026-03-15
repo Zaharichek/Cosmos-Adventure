@@ -1,44 +1,19 @@
-import { ItemStack, world, system } from "@minecraft/server";
+import { world, system } from "@minecraft/server";
+import { assemble, destroy } from "./rocket_launch_pad";
 
-function assemble(block) {
-	for (let x of [-1, 0, 1]) {
-		for (let z of [-1, 0, 1]) {
-			const target = block.offset({x:x, y:0, z:z})
-			if (target.typeId != "cosmos:buggy_fueling_pad") return
-			if (target.permutation.getState("cosmos:center")) return
-		}
-	} block.setPermutation(block.permutation.withState( 'cosmos:center', true))
-}
-function destroy(block) {
-	const dimension = block.dimension
-	const rocket = dimension.getEntities({location: block.center(), maxDistance: 1, type: 'cosmos:moon_buggy'})[0]
-	if (rocket) {
-		rocket.remove()
-		dimension.spawnItem(new ItemStack("cosmos:moon_buggy_item"), block.center())
-	}
-	for (let i of [-1, 0, 1]) {
-		for (let j of [-1, 0, 1]) {
-			const target = block.offset({x:i, y:0, z:j})
-			if (target.typeId == "cosmos:buggy_fueling_pad") {
-				const {x, y, z} = target
-				dimension.runCommand(`fill ${x} ${y} ${z} ${x} ${y} ${z} air destroy`)
-			}
-		}
-	}
-}
 system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 	blockComponentRegistry.registerCustomComponent('cosmos:buggy_fueling_pad', {
 		onPlace({block}) {
 			for (let x of [-1, 0, 1]) {
 				for (let z of [-1, 0, 1]) {
 					const target = block.offset({x:x, y:0, z:z})
-					assemble(target)
+					assemble(target, "cosmos:buggy_fueling_pad")
 				}
 			}
 		},
 		onPlayerBreak({block, player, brokenBlockPermutation: pad}) {
 			if (pad.getState("cosmos:center")) {
-				destroy(block); return
+				destroy(block, "cosmos:buggy_fueling_pad", "cosmos:moon_buggy_item", "cosmos:moon_buggy"); return
 			}
 			for (let x of [-1, 0, 1]) {
 				for (let z of [-1, 0, 1]) {
@@ -66,7 +41,9 @@ system.beforeEvents.startup.subscribe(({itemComponentRegistry}) => {
 			const {x, y, z} = block.center()
 			const equipment = player.getComponent("minecraft:equippable")
 			let inventory_size = item.getDynamicProperty('inventory_size') || 0;
-			player.dimension.spawnEntity("cosmos:moon_buggy", {x: x, y: y + 2.5, z: z}, {spawnEvent: 'cosmos:inv' + inventory_size})
+			let buggy = player.dimension.spawnEntity("cosmos:moon_buggy", {x: x, y: y + 2.5, z: z}, 
+				{spawnEvent: 'cosmos:inv' + inventory_size})
+			buggy.setProperty("cosmos:container_number", inventory_size/18)
 			if (player.getGameMode() != "Creative") equipment.setEquipment("Mainhand", item.decrementStack())
         }
     })
