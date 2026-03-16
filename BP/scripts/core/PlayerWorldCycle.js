@@ -32,7 +32,7 @@ world.afterEvents.worldLoad.subscribe(() => {
             //manage coordinates
             if(coords_enabled) coords_loop(player)
             //manage footprints in the moon
-            if(!(currentTick % 10) && tags.includes("in_space")) spawn_footprint(player, player.location)
+            if(!(currentTick % 10) && tags.includes("in_space") && !player.getComponent("minecraft:riding")) spawn_footprint(player, player.location)
         });
         //manage gravity
         //player_gravity(players_in_space)

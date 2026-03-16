@@ -1,4 +1,5 @@
 import { ItemStack, world, system } from "@minecraft/server";
+import { pads } from "../vehicles/Vehicle";
 
 export function assemble(block, type) {
 	for (let x of [-1, 0, 1]) {
@@ -9,17 +10,18 @@ export function assemble(block, type) {
 		}
 	} block.setPermutation(block.permutation.withState( 'cosmos:center', true))
 }
-export function destroy(block, block_type, item_type, entity_type) {
-	const dimension = block.dimension
-	const rocket = dimension.getEntities({location: block.center(), maxDistance: 1, type: entity_type})[0]
-	if (rocket) {
-		rocket.remove()
-		dimension.spawnItem(new ItemStack(item_type), block.center())
+export function destroy(block, type) {
+	const dimension = block.dimension;
+	const vehicle = dimension.getEntities({location: block.center(), maxDistance: 1, families: [pads[type]]})[0]
+	if (vehicle) {
+		let item_type = vehicle.typeId + "_item";
+		vehicle.remove();
+		dimension.spawnItem(new ItemStack(item_type), block.center());
 	}
 	for (let i of [-1, 0, 1]) {
 		for (let j of [-1, 0, 1]) {
 			const target = block.offset({x:i, y:0, z:j})
-			if (target.typeId == block_type) {
+			if (target.typeId == type) {
 				const {x, y, z} = target
 				dimension.runCommand(`fill ${x} ${y} ${z} ${x} ${y} ${z} air destroy`)
 			}
@@ -38,7 +40,7 @@ system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 		},
 		onPlayerBreak({block, player, brokenBlockPermutation: pad}) {
 			if (pad.getState("cosmos:center")) {
-				destroy(block, "cosmos:rocket_launch_pad", "cosmos:rocket_tier_1_item", "cosmos:rocket_tier_1"); return
+				destroy(block, pad.type.id); return
 			}
 			for (let x of [-1, 0, 1]) {
 				for (let z of [-1, 0, 1]) {
@@ -46,7 +48,7 @@ system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 					if (target.typeId != "cosmos:rocket_launch_pad") continue
 					if (target.permutation.getState("cosmos:center")) {
 						if (player.getGameMode() == 'Creative') world.gameRules.doTileDrops = false
-						destroy(target)
+						destroy(target, pad.type.id)
 						world.gameRules.doTileDrops = true; return
 					}
 				}
@@ -66,8 +68,7 @@ system.beforeEvents.startup.subscribe(({itemComponentRegistry}) => {
 			const {x, y, z} = block.center()
 			const equipment = player.getComponent("minecraft:equippable")
 			let inventory_size = item.getDynamicProperty('inventory_size') || 0;
-			let type = {"cosmos:rocket_tier_1_item": "cosmos:rocket_tier_1", 
-			"cosmos:rocket_tier_2_item": "cosmos:rocket_tier_2"}[item.typeId];
+			let type = item.typeId.replace("_item", "")
 			player.dimension.spawnEntity(type, {x: x, y: y - 0.3, z: z}, {spawnEvent: 'cosmos:inv' + inventory_size, initialRotation: 90})
 			if (player.getGameMode() != "Creative") equipment.setEquipment("Mainhand", item.decrementStack())
         }

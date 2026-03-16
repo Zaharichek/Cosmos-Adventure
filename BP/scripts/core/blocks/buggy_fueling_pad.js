@@ -13,7 +13,7 @@ system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 		},
 		onPlayerBreak({block, player, brokenBlockPermutation: pad}) {
 			if (pad.getState("cosmos:center")) {
-				destroy(block, "cosmos:buggy_fueling_pad", "cosmos:moon_buggy_item", "cosmos:moon_buggy"); return
+				destroy(block, pad.type.id); return
 			}
 			for (let x of [-1, 0, 1]) {
 				for (let z of [-1, 0, 1]) {
@@ -21,7 +21,7 @@ system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 					if (target.typeId != "cosmos:buggy_fueling_pad") continue
 					if (target.permutation.getState("cosmos:center")) {
 						if (player.getGameMode() == 'Creative') world.gameRules.doTileDrops = false
-						destroy(target)
+						destroy(target, pad.type.id)
 						world.gameRules.doTileDrops = true; return
 					}
 				}

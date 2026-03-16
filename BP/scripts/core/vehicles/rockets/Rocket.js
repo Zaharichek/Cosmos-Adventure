@@ -5,9 +5,8 @@ import { load_dynamic_object } from "../../../api/utils";
 import { get_vehicle_data } from "../Vehicle";
 
 export default class{
-    constructor(entity, block) {
+    constructor(entity) {
         this.entity = entity;
-        this.block = block;
         if (entity.isValid) this.rocket();
     }
     rocket(){

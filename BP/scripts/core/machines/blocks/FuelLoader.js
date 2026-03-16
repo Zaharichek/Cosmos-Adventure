@@ -1,18 +1,12 @@
-import { system, ItemStack } from "@minecraft/server";
+import { system, ItemStack, world } from "@minecraft/server";
 import { charge_from_battery, charge_from_machine} from "../../matter/electricity.js";
 import { compare_lists, load_dynamic_object, location_of_side, save_dynamic_object } from "../../../api/utils.js";
 import { get_data } from "../Machine.js";
+import { pads } from "../../vehicles/Vehicle.js";
 import { input_fluid, load_from_canister_instant } from "../../matter/fluids.js";
 
-const pads = {
-	"cosmos:moon_buggy": "cosmos:buggy_fueling_pad",
-	"cosmos:rocket_tier_1": "cosmos:rocket_launch_pad",
-	"cosmos:rocket_tier_2": "cosmos:rocket_launch_pad",
-	"cosmos:rocket_tier_3": "cosmos:rocket_launch_pad"
-}
-
 function get_vehicles(block){
-	if(!block.location) return;
+	if(!block.isValid) return;
 	let {x, y, z} = block.location;
 
     let pad_one = location_of_side(block, "front")
@@ -27,8 +21,8 @@ function get_vehicles(block){
 	let vehicles = [];
 	[pad_one, pad_two].forEach((pad) => {
 		if(pad.permutation.getState("cosmos:center")){
-			let vehicle = pad.dimension.getEntities({families: ["requires_fuel"], location: pad.center(), maxDistance: 2})[0];
-			if(vehicle && pads[vehicle.typeId] == pad.typeId) vehicles.push(vehicle);
+			let vehicle = pad.dimension.getEntities({families: [pads[pad.typeId]], location: pad.center(), maxDistance: 2})[0];
+			if(vehicle) vehicles.push(vehicle.id);
 		}
 	});
     return vehicles;
@@ -48,6 +42,7 @@ export default class {
 		const variables = load_dynamic_object(this.entity, "machine_data")
 		let energy = variables.energy ?? 0
 		let fuel = variables.fuel ?? 0
+		let vehicles = variables.vehicles ?? [];
 		
 	    energy = charge_from_machine(this.entity, this.block, energy)
 		
@@ -55,24 +50,24 @@ export default class {
 		
 		fuel = input_fluid("fuel", this.entity, this.block, fuel)
 		fuel = load_from_canister_instant(fuel, "fuel", this.entity, 0).amount;
-		if(!stopped && energy > 0 && fuel >= 2 && this.block){
-		    let vehicles = get_vehicles(this.block)
-		    if(vehicles.length > 0){
+		if(!stopped && vehicles.length > 0 && energy > 0 && fuel >= 2 && this.block){
 		        vehicles.forEach((vehicle) =>{
-					let vehicle_dynamic_object = load_dynamic_object(vehicle, "vehicle_data")
+			        vehicle = world.getEntity(vehicle);
+			        if(!vehicle || !vehicle.isValid) return;
+			        let vehicle_dynamic_object = load_dynamic_object(vehicle, "vehicle_data")
 		            let fuel_level = vehicle_dynamic_object?.fuel ?? 0;
 		            if(fuel_level < 1000){
-		                let level = Math.min(1000, fuel_level + 2)
-						vehicle_dynamic_object.fuel = level;
-		                save_dynamic_object(vehicle, vehicle_dynamic_object, "vehicle_data");
-		                fuel = Math.max(0, fuel - 2)
-		                energy = Math.max(0, energy - 30)
-		            }
-		        })
-		        
-		    }
+		            let level = Math.min(1000, fuel_level + 2)
+				    vehicle_dynamic_object.fuel = level;
+					save_dynamic_object(vehicle, vehicle_dynamic_object, "vehicle_data");
+		            fuel = Math.max(0, fuel - 2)
+		            energy = Math.max(0, energy - 30)
+		        }
+		    })
 		}
-		save_dynamic_object(this.entity, {energy, fuel}, "machine_data")
+	
+		if(system.currentTick % 100 == 0) vehicles = get_vehicles(this.block);
+		save_dynamic_object(this.entity, {energy, fuel, vehicles}, "machine_data")
 		
 		const status =
 			energy == 0 ? "§4No Power" : 

@@ -1,7 +1,12 @@
 import {system, world, ItemStack} from "@minecraft/server";
 import AllVehicles from "./AllVehicles";
 import { rocket_nametags } from "../../api/player/liftoff";
+
 export let vehicles = new Map();
+export const pads = {
+	"cosmos:buggy_fueling_pad": "buggy",
+	"cosmos:rocket_launch_pad": "rocket",
+}
 
 function reload_vehicle(entity){
     if (!Object.keys(AllVehicles).includes(entity.typeId) || vehicles.has(entity.id)) return;
