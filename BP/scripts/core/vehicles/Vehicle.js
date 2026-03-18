@@ -37,9 +37,21 @@ world.afterEvents.entitySpawn.subscribe(({entity}) => {
         let inventory = entity.getComponent("minecraft:inventory");
         if(!inventory) return;
         let data = get_vehicle_data(entity)
-        let inventory_size = inventory.inventorySize - data.inventory_index;
+        const inventory_size = inventory.inventorySize - data.inventory_index;
         entity.nameTag = data.ui + rocket_nametags[inventory_size];
     }
+});
+//removes entity from cycle and drops it's item
+world.afterEvents.entityDie.subscribe(({deadEntity: entity, damageSource}) => {
+    if(AllVehicles[entity.typeId]){
+        vehicles.delete(entity.id);
+        if(!AllVehicles[entity.typeId].drops_item || (damageSource?.damagingEntity.typeId == "minecraft:player" && damageSource?.damagingEntity.getGameMode() == "Creative")) return;
+        const item = get_vehicle_item(entity, entity.getComponent("minecraft:inventory"));
+        entity.dimension.spawnItem(item, entity.location);
+    }
+});
+world.afterEvents.entityRemove.subscribe(({typeId, removedEntityId}) => {
+    if(AllVehicles[typeId]) vehicles.delete(removedEntityId)
 });
 
 export function get_vehicle_data(vehicle){
@@ -60,4 +72,11 @@ export function set_items_to_vehicle(vehicle, size, items_to_set, typeId){
     rocket_item.setLore([`§r§7Storage Space: ${size}`])
     rocket_item.setDynamicProperty("inventory_size", size)
     container.setItem(inventorySize - 1, rocket_item)
+}
+export function get_vehicle_item(vehicle, inventory){
+    const inventory_size = inventory ? inventory.inventorySize - get_vehicle_data(vehicle).inventory_index: 0;
+    let item = new ItemStack(vehicle.typeId + "_item");
+    item.setDynamicProperty("inventory_size", inventory_size);
+    item.setLore([`§r§7Storage Space: ${inventory_size}`]);
+    return item;
 }

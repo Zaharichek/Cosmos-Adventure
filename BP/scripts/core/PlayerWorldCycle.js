@@ -39,13 +39,17 @@ world.afterEvents.worldLoad.subscribe(() => {
     });
 });
 
-//space player tags removing 
-world.afterEvents.playerSpawn.subscribe((data) => {
-    if(data.player.dimension.id !== "minecraft:the_end"){
-        space_tags_removing(data.player)
+//removes space tags and sets standart permissions to default
+world.afterEvents.playerSpawn.subscribe(({player}) => {
+    if(player.dimension.id !== "minecraft:the_end"){
+        space_tags_removing(player)
     }
-    data.player.removeTag("oxygen_hunger");
-    data.player.setDynamicProperty("in_celestial_selector")
+    player.removeTag("oxygen_hunger");
+    player.setDynamicProperty("in_celestial_selector");
+
+    player.inputPermissions.setPermissionCategory(6, true);
+    player.inputPermissions.setPermissionCategory(7, true);
+    player.inputPermissions.setPermissionCategory(8, true);
 });
 
 world.afterEvents.playerDimensionChange.subscribe((data) => {

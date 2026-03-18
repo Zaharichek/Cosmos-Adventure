@@ -1,5 +1,5 @@
 import { ItemStack, world, system } from "@minecraft/server";
-import { pads } from "../vehicles/Vehicle";
+import { pads, get_vehicle_item} from "../vehicles/Vehicle";
 
 export function assemble(block, type) {
 	for (let x of [-1, 0, 1]) {
@@ -14,9 +14,9 @@ export function destroy(block, type) {
 	const dimension = block.dimension;
 	const vehicle = dimension.getEntities({location: block.center(), maxDistance: 1, families: [pads[type]]})[0]
 	if (vehicle) {
-		let item_type = vehicle.typeId + "_item";
+		const item = get_vehicle_item(vehicle, vehicle.getComponent("minecraft:inventory"));
 		vehicle.remove();
-		dimension.spawnItem(new ItemStack(item_type), block.center());
+		dimension.spawnItem(item, block.center());
 	}
 	for (let i of [-1, 0, 1]) {
 		for (let j of [-1, 0, 1]) {
