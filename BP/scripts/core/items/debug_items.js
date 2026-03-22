@@ -10,6 +10,7 @@ function swap(player, block, [state, value]) {
 }
 function select(player, block, [state, value]) {
     const values = BlockStates.get(state).validValues
+    console.warn(values, state)
     const form = new ActionFormData()
     .title(state)
     values.forEach(option => {

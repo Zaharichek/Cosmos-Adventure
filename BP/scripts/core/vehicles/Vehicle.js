@@ -26,7 +26,7 @@ world.afterEvents.worldLoad.subscribe(() => {
             if(!vehicle?.isValid) return;
             const data = AllVehicles[vehicle.typeId]
             // tick the vehicle
-            new data.class(vehicle)
+            data.class(vehicle)
         });
     });
 });

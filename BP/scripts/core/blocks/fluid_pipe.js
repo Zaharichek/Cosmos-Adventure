@@ -1,12 +1,29 @@
 import { world, BlockPermutation, system } from "@minecraft/server"
 import machines from "../machines/AllMachineBlocks.js"
-import { opposite_side, same_side, str_pos } from "./aluminum_wire"
+import { str_pos } from "./aluminum_wire"
 import { get_entity } from "../../api/utils.js"
 import { get_data } from "../machines/Machine.js"
 import { compare_position, location_of_side } from "../../api/utils.js"
+import electric_furnace from "../../recipes/electric_furnace.js"
 
-const faces = ["cosmos:up", "cosmos:north", "cosmos:east", "cosmos:west", "cosmos:south", "cosmos:down"]
-
+const faces = ["cosmos:fluid_up", "cosmos:fluid_north", 
+	"cosmos:fluid_east", "cosmos:fluid_west", "cosmos:fluid_south", "cosmos:fluid_down"]
+const same_side = {
+	above: "cosmos:fluid_uo",
+	below: "cosmos:fluid_down",
+	north: "cosmos:fluid_north",
+	south: "cosmos:fluid_south",
+	east: "cosmos:fluid_east",
+	west: "cosmos:fluid_west", 
+}
+const opposite_side = {
+	above: "cosmos:fluid_down",
+	below: "cosmos:fluid_uo",
+	north: "cosmos:fluid_south",
+	south: "cosmos:fluid_north",
+	east: "cosmos:fluid_west", 
+	west: "cosmos:fluid_east",
+}
 const dyes = {
 	"minecraft:white_dye": "white",
 	"minecraft:light_gray_dye": "silver",
@@ -26,45 +43,38 @@ const dyes = {
 	"minecraft:pink_dye": "pink",
 }
 
-export function attach_pipes(block, attach = true) {
+export function attach_pipes(block, attach = 1) {
 	const neighbors = block.getNeighbors(6)
 	for (const [i, pipe] of neighbors.entries()) {
 		if ('cosmos:fluid_pipe' == pipe.typeId) 
 			pipe.setPermutation(pipe.permutation.withState(faces[5 - i], attach))
 	}
 }
-const blocks = {
-	"cosmos:up": {x: 0, y: 1, z: 0},
-	"cosmos:down": {x:0, y: 1, z: 0},
-	"cosmos:north": {x: 0, y: 0, z:  1},
-	"cosmos:south": {x: 0, y: 0, z:  1},
-	"cosmos:east": {x:  1, y: 0, z: 0},
-	"cosmos:west": {x:  1, y: 0, z: 0}
-}
 
 function getSides(pipeOs, permutation, pipes){
 	let sides = permutation.getAllStates();
 	let loc = pipeOs.location;
 	const blocks = {
-		"cosmos:up": {x: loc.x, y: loc.y + 1, z: loc.z},
-		"cosmos:down": {x: loc.x, y: loc.y - 1, z: loc.z},
-		"cosmos:north": {x: loc.x, y: loc.y, z: loc.z - 1},
-		"cosmos:south": {x: loc.x, y: loc.y, z: loc.z + 1},
-		"cosmos:east": {x: loc.x + 1, y: loc.y, z: loc.z},
-		"cosmos:west": {x: loc.x - 1, y: loc.y, z: loc.z}
+		"cosmos:fluid_up": {x: loc.x, y: loc.y + 1, z: loc.z},
+		"cosmos:fluid_down": {x: loc.x, y: loc.y - 1, z: loc.z},
+		"cosmos:fluid_north": {x: loc.x, y: loc.y, z: loc.z - 1},
+		"cosmos:fluid_south": {x: loc.x, y: loc.y, z: loc.z + 1},
+		"cosmos:fluid_east": {x: loc.x + 1, y: loc.y, z: loc.z},
+		"cosmos:fluid_west": {x: loc.x - 1, y: loc.y, z: loc.z}
 	}
 	for(let block in sides){
 		if(!sides[block] || !blocks[block]) continue;
 		let loc_as_string = JSON.stringify(blocks[block]);
 		let pipe_in_map = pipes.get(loc_as_string);
 		if(!pipe_in_map){
-			pipes.set(loc_as_string, {type: 
-				(pipeOs.dimension.getBlock(blocks[block]).typeId == "cosmos:fluid_pipe")? "pipe": undefined, 
-				connected: (pipeOs.dimension.getBlock(blocks[block]).typeId != "cosmos:fluid_pipe")? 
-				loc: undefined});
+			if(sides[block] == 1) pipes.set(loc_as_string, {type: 'pipe', connected: undefined});
+			else pipes.set(loc_as_string, {type:  undefined, connected: [loc]});
 				
-		}else if(pipe_in_map.connected && !compare_position(loc, pipe_in_map.connected)){
-			pipe_in_map.slot = "both";
+		}else if(pipe_in_map.connected){
+			let position = pipe_in_map.connected.find((element) => !compare_position(loc, element));
+			if(position){
+				pipe_in_map.connected.push(loc);
+			}
 			pipes.set(loc_as_string, pipe_in_map);
 		}
 	}
@@ -88,17 +98,35 @@ function find_connected_machines(first_pipe, perm = first_pipe.permutation){
 		let machineEntity = get_entity(block.dimension, block.center(), "cosmos");
 		if(!machineEntity) return;
 		
-		let machineData = get_data(machineEntity);
+		let machineData = Object.entries(get_data(machineEntity));
+		machineData = JSON.parse(JSON.stringify(machineData));
+		
+		machineData.filter((element) => 
+			(element[0] !== 'energy' && (element[1].input || element[1].output))
+		);
+		machineData.forEach((element, index) => {
+			if(element[1].input) element[1].input = location_of_side(block, element[1].input)
+            if(element[1].output) element[1].output = location_of_side(block, element[1].output)
+			machineData[index] = element;
+	    });
+
 		let final_slot = {};
-		Object.entries(machineData).forEach((element) => {
-			if(element[0] == "energy") return;
-			const connections = {
-				input: location_of_side(block, element[1].input),
-				output: location_of_side(block, element[1].output)
-			};
-			if(compare_position(connections.input, value.connected)) final_slot[element[0]] = "input"
-			else if(compare_position(connections.output, value.connected)) final_slot[element[0]] ="output"
+
+		value.connected.forEach((vector) => {
+			machineData.forEach((element) => {
+				const input = element[1].input;
+				const output = element[1].output;
+                final_slot[element[0]] = [];
+				if(input && compare_position(input, vector)){
+					final_slot[element[0]].push("input")
+				}
+				if(output && compare_position(output, vector)){
+					final_slot[element[0]].push("output")
+				}
+				if(!final_slot[element[0]].length) final_slot[element[0]] = undefined;
+			});
 		});
+
 		foundMachines.push([machineEntity.id, final_slot])
     });
 	return foundMachines;
@@ -109,8 +137,8 @@ function connect_pipes(pipe) {
 	const states = {}
 	for (const [side, block] of Object.entries(neighbors)) {
 		if (block.typeId == 'cosmos:fluid_pipe') {
-			block.setPermutation(block.permutation.withState(opposite_side[side], true))
-			states[same_side[side]] = true
+			block.setPermutation(block.permutation.withState(opposite_side[side], 1))
+			states[same_side[side]] = 1
 		}
 		const machine_type = block.typeId.split(':').pop()
 		if (Object.keys(machines).includes(machine_type)) {
@@ -121,7 +149,7 @@ function connect_pipes(pipe) {
 				    str_pos(location_of_side(block, element[1].input)),
 				    str_pos(location_of_side(block, element[1].output))
 			    ];
-			    if(connections.includes(str_pos(pipe.location))) states[same_side[side]] = true
+			    if(connections.includes(str_pos(pipe.location))) states[same_side[side]] = 1
 			});
 		}
 	}
@@ -140,7 +168,7 @@ system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 			const neighbors = block.getNeighbors(6)
 			for (const [i, pipe] of neighbors.entries()) {
 				if ('cosmos:fluid_pipe' == pipe.typeId) 
-					pipe.setPermutation(pipe.permutation.withState(faces[5 - i], false))
+					pipe.setPermutation(pipe.permutation.withState(faces[5 - i], 0))
 			}
 		},                  
 		/*
