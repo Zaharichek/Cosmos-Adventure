@@ -40,6 +40,7 @@ export function detach_pipes(block) {
 	for (const [i, pipe] of neighbors.entries()) {
 		if ('cosmos:fluid_pipe' == pipe.typeId) 
 			pipe.setPermutation(pipe.permutation.withState(faces[5 - i], 0))
+		    system.run(() => { fluidNetwork(find_connected_machines(block)); });
 	}
 }
 export function attach_pipes(block){
@@ -92,6 +93,7 @@ function getSides(pipeOs, permutation, pipes){
 	}
 }
 function find_connected_machines(first_pipe, perm = first_pipe.permutation){
+	if(perm?.type.id !== "cosmos:fluid_pipe") return undefined;
 	let pipesWillDone = new Map();
 	let foundMachines = [];
 	let pipesIterator = pipesWillDone[Symbol.iterator]();
@@ -112,26 +114,29 @@ function find_connected_machines(first_pipe, perm = first_pipe.permutation){
 		
 		let machineData = Object.entries(get_data(machineEntity));
 		let slots = [];
-		machineData.forEach((element, index) => {
-			if(element[1] == "energy") return;
-			if(element[1].input) slots[index].input = location_of_side(block, element[1].input)
-            if(element[1].output) slots[index].output = location_of_side(block, element[1].output)
+		let index = -1;
+		machineData.forEach((slot) => {
+			if(slot[0] == "energy" || (!slot[1].input && !slot[1].output)) return;
+			index++;
+			slots[index] = {type: slot[0]}
+			if(slot[1].input) slots[index].input = location_of_side(block, slot[1].input)
+            if(slot[1].output) slots[index].output = location_of_side(block, slot[1].output)
 	    });
 
 		let final_slot = {};
 
 		value.connected.forEach((vector) => {
 			slots.forEach((element) => {
-				const input = element[1].input;
-				const output = element[1].output;
-                final_slot[element[0]] = [];
+				const input = element.input;
+				const output = element.output;
+                final_slot[element.type] = [];
 				if(input && compare_position(input, vector)){
-					final_slot[element[0]].push("input")
+					final_slot[element.type].push("input")
 				}
 				if(output && compare_position(output, vector)){
-					final_slot[element[0]].push("output")
+					final_slot[element.type].push("output")
 				}
-				if(!final_slot[element[0]].length) final_slot[element[0]] = undefined;
+				if(!final_slot[element.type].length) final_slot[element.type] = undefined;
 			});
 		});
 
@@ -162,31 +167,52 @@ function connect_pipes(pipe) {
 		}
 	}
 	pipe.setPermutation(BlockPermutation.resolve("cosmos:fluid_pipe", states))
+	system.run(() => { 
+		let connected_machines = find_connected_machines(pipe);
+		console.warn(JSON.stringify(connected_machines));
+		fluidNetwork(connected_machines); 
+	});
 }
 
 export function fluidNetwork(foundMachines){
-	for(machine_data in foundMachines){
+	if(!foundMachines?.length) return;
+	for(let machine_data of foundMachines){
+		console.warn(machine_data[0])
 		let machine = world.getEntity(machine_data[0]);
-		const data = get_data(machine);
-		
+		let machine_block = machine.dimension.getBlock(machine.location);
+		const data = Object.entries(get_data(machine));
+		let machines = {};
 		data.forEach((slot) => {
 			if(slot[0] == 'energy' || (!slot[1].input && !slot[1].output)) return;
+			if(slot[1].input){
+				let input_side = machine.dimension.getBlock(location_of_side(machine_block, slot[1].input));
+				let inputs = find_connected_machines(input_side);
+				if(inputs){
+					machines.input = {};
+					machines.input[slot[0]] = inputs;
+				}
+			}
+			if(slot[1].output){
+				let output_side = machine.dimension.getBlock(location_of_side(machine_block, slot[1].output));
+				let outputs = find_connected_machines(output_side);
+				if(outputs){
+					machines.output = {};
+					machines.output[slot[0]] = outputs
+				}
+			}
 		});
+
+		console.warn(JSON.stringify(machines));
 	}
 }
 
 system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 	blockComponentRegistry.registerCustomComponent('cosmos:fluid_pipe', {
-		onPlace(event) {
-			const { block } = event;
+		onPlace({block}) {
 			connect_pipes(block, "cosmos:fluid_pipe")
 		},
 		onPlayerBreak({block}) {
-			const neighbors = block.getNeighbors(6)
-			for (const [i, pipe] of neighbors.entries()) {
-				if ('cosmos:fluid_pipe' == pipe.typeId) 
-					pipe.setPermutation(pipe.permutation.withState(faces[5 - i], 0))
-			}
+			detach_pipes(block)
 		},
 	})
 })
