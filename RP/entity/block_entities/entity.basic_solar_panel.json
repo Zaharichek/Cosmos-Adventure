@@ -10,7 +10,7 @@
         "default": "skeleton"
       },
       "render_controllers": [
-        "controller.render.default"
+        "controller.render.nasa_workbench"
       ],
       "textures": {
         "default": "textures/entity/solar_panel_basic"

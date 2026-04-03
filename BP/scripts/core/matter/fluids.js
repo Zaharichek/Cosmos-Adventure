@@ -137,8 +137,8 @@ export function output_fluid(fluid_type, entity, block, fluid) {
     if (!target_location || fluid == 0) return fluid
     const target_block = block.dimension.getBlock(target_location)
 
-    if (target_block.typeId == "cosmos:fluid_pipe") {
-        return fluid
+    if (target_block.typeId == "cosmos:fluid_pipe" && fluid > 0) {
+        return fluid;
     } else {
         const target_entity = get_entity(entity.dimension, target_location, `has_${fluid_type}_input`)
         if (!target_entity) return fluid

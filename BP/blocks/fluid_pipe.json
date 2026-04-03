@@ -17,7 +17,7 @@
 		"components": {
 			//"minecraft:display_name": "%tile.fluid_pipe.name\n§7%tile.fluid_pipe.description",
 			"minecraft:material_instances": {
-				"*": { "texture": "fluid_pipe_pull", "render_method": "blend" },
+				"*": { "texture": "fluid_pipe", "render_method": "blend" },
 				"fluid": { "texture": "still_lava", "render_method": "blend" },
 				"color": { "texture": "fluid_pipe_color", "render_method": "blend" },
 				"pull": { "texture": "fluid_pipe_pull", "render_method": "blend" }
