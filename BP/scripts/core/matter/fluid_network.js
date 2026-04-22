@@ -31,7 +31,7 @@ export function get_fluid_amount(machine, fluid_data, amount){
     
     fluid_storage = fluid_storage ?? {};
 
-    const inputs = (machines.input ? machines.input[slot] : []) ?? [];
+    let inputs = machines?.found_machines?.[slot]?.input ?? [];
 
     for(let storage of [[machine.id, undefined], ...inputs]){
         let machine_entity = world.getEntity(storage[0]); 
@@ -100,32 +100,32 @@ export function save_fluid_amount(machine, fluid_data, pipe, amount){
         }
     }
 
-    if(machines.output){
-        for(let output of machines.output[slot]){
-            let machine_entity = world.getEntity(output[0]); 
-            let machine_slot = output[1][slot][0];
+    let outputs = machines?.found_machines?.[slot]?.output ?? [];
+    for(let output of outputs){
+        let machine_entity = world.getEntity(output[0]); 
+        let machine_slot = output[1][slot][0];
 
-            let fluid_object = load_dynamic_object(machine_entity, 'machine_data', 'fluid_storage_amount');
-            let fluid = fluid_object?.[machine_slot]?.[fluid_type];
+        let fluid_object = load_dynamic_object(machine_entity, 'machine_data', 'fluid_storage_amount');
+        let fluid = fluid_object?.[machine_slot]?.[fluid_type];
 
-            if(fluid !== undefined){
-                let fluid_in_pipes = pipes_fluid_amount(fluid, amount, max_space);
+        if(fluid !== undefined){
+            let fluid_in_pipes = pipes_fluid_amount(fluid, amount, max_space);
 
-                fluid = fluid_in_pipes.fluid;
-                fluid_storage = {id: machine_entity.id, side: machine_slot};
-                storage_object.output[fluid_type] = fluid_storage;
+            fluid = fluid_in_pipes.fluid;
+            fluid_storage = {id: machine_entity.id, side: machine_slot};
+            storage_object.output[fluid_type] = fluid_storage;
 
-                save_dynamic_object(machine, storage_object, 'machine_data', 'fluid_storage_entity');
-                save_dynamic_object(machine, fluid_object, 'machine_data', 'fluid_storage_amount');
+            save_dynamic_object(machine, storage_object, 'machine_data', 'fluid_storage_entity');
+            save_dynamic_object(machine, fluid_object, 'machine_data', 'fluid_storage_amount');
 
-                return fluid_in_pipes.amount;
-            }else if(Object.keys(storage_object?.output ?? {}).length > 0){
-                storage_object.output["unknown"] = machine_entity.id;
-                save_dynamic_object(machine, storage_object, 'machine_data', 'fluid_storage_entity');
-                return amount;
-            }
+            return fluid_in_pipes.amount;
+        }else if(Object.keys(storage_object?.output ?? {}).length > 0){
+            storage_object.output["unknown"] = machine_entity.id;
+            save_dynamic_object(machine, storage_object, 'machine_data', 'fluid_storage_entity');
+            return amount;
         }
     }
+    
     storage_object.output[fluid_type] = {id: machine.id, side: "output"};
 
     let fluid_object = load_dynamic_object(machine, 'machine_data', 'fluid_storage_amount');
@@ -154,29 +154,11 @@ function pipes_fluid_amount(fluid, amount, max_space){
 }
 
 export function update_network(storage, fluid, old_list, new_list){
-
     if(!fluid || Object.keys(fluid.output ?? {}).length + Object.keys(fluid.input ?? {}).length === 0) return;
     
     let deleted_machines = compare_lists(old_list, new_list);
-    deleted_machines.input = Object.entries(deleted_machines.input);
-    deleted_machines.output = Object.entries(deleted_machines.output);
-
-    if(deleted_machines.input.length + deleted_machines.output.length === 0) return;
+    //if(deleted_machines.input.length + deleted_machines.output.length === 0) return;
     console.warn("sasay", JSON.stringify(deleted_machines))
-
-    for(let side in deleted_machines){
-        for(let machine of deleted_machines[side]){
-            let machine_entity = world.getEntity(machine[0]);
-            let fluid_storage = load_dynamic_object(machine_entity, "machine_data", "fluid_storage_entity");
-            [...Object.entries(fluid_storage.input ?? {}), ...Object.entries(fluid_storage.output ?? {})].forEach((slot) => {
-                console.warn(slot[1].id, storage.id)
-                let connected_slot = fluid[side][slot[0]]?.slot;
-                if(slot[1].id == storage.id && connected_slot){
-             ///must be
-                }
-            });
-        }
-    } 
     
 }
 export function delete_storage(storage){
@@ -192,7 +174,7 @@ export function delete_storage(storage){
             let type = fluid_object[0];
             const slot = fluid_object[1].slot;
             let is_done = false;
-            const sides = (machines[side] ? machines[side][slot] : []) ?? [];
+            const sides = (machines[slot] ? machines[slot][side] : []) ?? [];
 
             for(let machine of sides){
                 let machine_entity = world.getEntity(machine[0]);
@@ -235,63 +217,37 @@ export function delete_storage(storage){
 }
 //this function is kinda broken 
 function compare_lists(old_list, new_list){
-    let disconnected_machines = {input: {}, output: {}}; 
+    let disconnected_machines = {}; 
+    let old_sides = old_list.found_machines ?? {};
+    let new_sides = new_list.found_machines ?? {};
 
-    let old_outputs = old_list.output ?? {};
-    let new_outputs = new_list.output ?? {};
+    for(let slot of Object.entries(old_sides)){
+        for(let side in slot[1]){
+            for(let machine of slot[1][side]){
+                let machine_id = machine[0];
+                let similliar_machine = new_sides[slot[0]]?.[side]?.find(element => element[0] == machine_id);
 
-    let old_inputs = old_list.input ?? {};
-    let new_inputs = new_list.input ?? {};
+                let machine_in_list = disconnected_machines[machine[0]]?.[slot[0]] ?? {};
+                machine_in_list[side] = machine_in_list[side] ?? {};
 
-    for(let slot of Object.entries(old_outputs)){
-        for(let machine of slot[1]){
-            let machine_id = machine[0]; 
-            let similliar_machine = new_outputs[slot[0]]?.find(element => element[0] == machine_id);
-            let machine_in_list = disconnected_machines.output[machine[0]] ?? {};
-            machine_in_list[slot[0]] = machine_in_list[slot[0]] ?? {};
-
-            Object.entries(machine[1]).forEach((old_slot) => {
-                if(!similliar_machine){
-                    machine_in_list[slot[0]][old_slot[0]] = old_slot[1];
-                    disconnected_machines.output[machine[0]] = machine_in_list;
-                    return;
-                }
-                let disconnected_sides = [];
-                old_slot[1].forEach((side) => {
-                    if(!similliar_machine[1][old_slot[0]]?.includes(side)) disconnected_sides.push(side);
+                Object.entries(machine[1]).forEach((old_slot) => {
+                    if(!similliar_machine){
+                        machine_in_list[old_slot[0]] = {[side]: old_slot[1]};
+                        disconnected_machines[machine[0]] = machine_in_list;
+                        return;
+                    }
+                    let disconnected_sides = [];
+                    old_slot[1].forEach((side) => {
+                        if(!similliar_machine[1][old_slot[0]]?.includes(side)) disconnected_sides.push(side);
+                    });
+                    if(disconnected_sides.length){
+                        machine_in_list[old_slot[0]] = disconnected_sides;
+                        disconnected_machines[machine[0]] = disconnected_machines[machine[0]] ?? {};
+                        disconnected_machines[machine[0]][side] = machine_in_list;
+                        return;
+                    }
                 });
-                if(disconnected_sides.length){
-                    machine_in_list[slot[0]][old_slot[0]] = disconnected_sides;
-                    disconnected_machines.output[machine[0]] = machine_in_list;
-                    return;
-                }
-            });
-        }
-    }
-
-    for(let slot of Object.entries(old_inputs)){
-        for(let machine of slot[1]){
-            let machine_id = machine[0]; 
-            let similliar_machine = new_inputs[slot[0]]?.find(element => element[0] == machine_id);
-            let machine_in_list = disconnected_machines.input[machine[0]] ?? {};
-            machine_in_list[slot[0]] = machine_in_list[slot[0]] ?? {};
-
-            Object.entries(machine[1]).forEach((old_slot) => {
-                if(!similliar_machine){
-                    machine_in_list[slot[0]][old_slot[0]] = old_slot[1];
-                    disconnected_machines.input[machine[0]] = machine_in_list;
-                    return;
-                }
-                let disconnected_sides = [];
-                old_slot[1].forEach((side) => {
-                    if(!similliar_machine[1][old_slot[0]]?.includes(side)) disconnected_sides.push(side);
-                });
-                if(disconnected_sides.length){
-                    machine_in_list[slot[0]][old_slot[0]] = disconnected_sides;
-                    disconnected_machines.input[machine[0]] = machine_in_list;
-                    return;
-                }
-            });
+            }
         }
     }
     return disconnected_machines;
