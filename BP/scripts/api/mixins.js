@@ -53,49 +53,6 @@ Merge(mc.Player.prototype, {
 
 //@ts-expect-error
 Merge(mc.Block.prototype, {
-
-    //WTF is this?
-    getNeighbors(maxSearch = 27) {
-        const directions = ["above", "north", "east", "west", "south", "below"]
-        const connectedBlocks = []
-        const visted = new Set();
-        const queue = [this.location]
-        while (connectedBlocks.length < maxSearch) {
-            const loc = queue.pop();
-            const hash = `${loc.x},${loc.y},${loc.z}`
-            if (!visted.has(hash)) {
-                visted.add(hash);
-                try {
-                    for (const dir of directions) {
-                        const offsetBlock = this[dir]();
-                        const newHash = `${offsetBlock.x},${offsetBlock.y},${offsetBlock.z}`
-                        if (!visted.has(newHash)) {
-                            visted.add(hash);
-                            queue.push(offsetBlock.location);
-                            connectedBlocks.push(offsetBlock)
-                        }
-                    }
-                } catch (e) {
-                    null//console.error(e, e.stack)
-                }
-            }
-        } return connectedBlocks;
-    },
-
-    // returns an object eg: { north: Block, east: Block, west: Block, ...}
-    four_neighbors(sides = ["north", "east", "west", "south"]) {
-        const blocks = {}
-        sides.forEach(side => {
-            blocks[side] = this[side]()
-        })
-        return blocks
-    },
-
-    // returns an object eg: { above: Block, north: Block, east: Block, ...}
-    six_neighbors() {
-        return this.four_neighbors(["above", "north", "east", "west", "south", "below"])
-    },
-
     getPlanet(){
         if(this.dimension.id == "minecraft:the_end") {
             return getPlanetByLocation(this.location);
@@ -130,10 +87,13 @@ Merge(mc.Entity.prototype, {
 //@ts-expect-error
 Merge(mc.Container.prototype, {
 
-    add_ui_button(slot, text, lore) {
-        const button = new ItemStack('cosmos:ui_button')
+    add_ui_display(slot, text, damage) {
+        const button = new ItemStack('cosmos:ui')
+        if (damage) {
+            const durability = button.getComponent('durability')
+            durability.damage = durability.maxDurability - damage
+        }
         button.nameTag = text ?? ''
-        if (lore) button.setLore(lore)
         super.setItem(slot, button)
     },
 
@@ -146,14 +106,12 @@ Merge(mc.Container.prototype, {
         super.setItem(slot, button)
     },
 
-    add_ui_display(slot, text, damage) {
-        const button = new ItemStack('cosmos:ui')
-        if (damage) {
-            const durability = button.getComponent('durability')
-            durability.damage = durability.maxDurability - damage
-        }
+    add_ui_button(slot, text, entity, property, value) {
+        if (super.getItem(slot)) return
+        const button = new ItemStack('cosmos:ui_button')
         button.nameTag = text ?? ''
         super.setItem(slot, button)
+        if (property) entity.setDynamicProperty(property, value)
     },
 
     updateUI(uiConfigs, data) {

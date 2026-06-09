@@ -1,5 +1,5 @@
 {
-	"format_version": "1.21.50",
+	"format_version": "1.21.80",
 	"minecraft:block": {
 		"description": {
 			"identifier": "cosmos:aluminum_wire",
@@ -14,6 +14,7 @@
 			}
 		},
 		"components": {
+			"tag:wire": {},
 			"minecraft:material_instances": { "*": { "texture": "aluminum_wire", "render_method": "blend" } },
 			"minecraft:collision_box": { "origin": [-2.5, 5.5, -2.5], "size": [5, 5, 5] },
 			"minecraft:selection_box": { "origin": [-2.5, 5.5, -2.5], "size": [5, 5, 5] },

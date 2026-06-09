@@ -1,4 +1,5 @@
-import * as mc from "@minecraft/server";
+// This file is for general Utility functions only.
+
 import {machine_entities} from "../core/machines/Machine";
 import {vehicles} from "../core/vehicles/Vehicle";
 import ALL_PLANETS from "../planets/AllPlanets";
@@ -15,6 +16,7 @@ export function load_dynamic_object(storage, type, name = 'variables'){
 export function save_dynamic_object(storage, value, type, name = 'variables'){
 	let entity = data_maps[type].get(storage.id);
 	if(!entity) return;
+	entity.entity_data = entity.entity_data ?? {};
 	entity.entity_data[name] = value;
 	data_maps[type].set(storage.id, entity);
 	storage.setDynamicProperty(type, JSON.stringify(entity.entity_data)) 
@@ -22,32 +24,28 @@ export function save_dynamic_object(storage, value, type, name = 'variables'){
 
 export function str(object) { return JSON.stringify(object) }
 
-/**@param {mc.Block[]} locations @param {mc.Dimension} dim */
-export const destroyBlocksJOB = function* (locations, dim) {
-	for (const loc of locations) {
-		dim.runCommand(`setblock ${loc.x} ${loc.y} ${loc.z} air [] destroy`);
-		yield;
-	}
+const four_neighbors_array = ["north", "east", "west", "south"]
+export function four_neighbors(block) {
+	const blocks = {}
+	four_neighbors_array.forEach(side => blocks[side] = block[side]())
+	return blocks
+}
+
+const six_neighbors_array = ["above", "north", "east", "west", "south", "below"]
+export function six_neighbors(block) {
+	const blocks = {}
+	six_neighbors_array.forEach(side => blocks[side] = block[side]())
+	return blocks
 }
 
 // this function takes a Block and a Side (above, below, left, right, back, or front) and returns a location {x, y, z}
+const TURN_BY = { front: 0, back: Math.PI, left: Math.PI / 2, right: -Math.PI / 2 }
+const ROTATE_BY = { north: Math.PI / 2, east: Math.PI, south: -Math.PI / 2, west: 0 }
 export function location_of_side(block, side) {
-	const TURN_BY = {
-		front: 0,
-		left: Math.PI / 2,
-		back: Math.PI,
-		right: -Math.PI / 2,
-	}
-	const ROTATE_BY = {
-		west: 0,
-		north: Math.PI / 2,
-		east: Math.PI,
-		south: -Math.PI / 2,
-	}
 	if (!block || !block.isValid || !side) return
 	const { location, permutation } = block
-	if (side == "above") return location.y += 1, location
-	if (side == "below") return location.y -= 1, location
+	if (side == "above") return location.y++, location
+	if (side == "below") return location.y--, location
 	const facing = permutation.getState("minecraft:cardinal_direction")
 	if (!facing) return
 	const direction = ROTATE_BY[facing]
@@ -57,8 +55,7 @@ export function location_of_side(block, side) {
 }
 
 export function get_entity(dimension, location, family) {
-	if (!location) return
-	return dimension.getEntities({
+	if (location) return dimension.getEntities({
 		families: [family],
 		location: {
 			x: Math.floor(location.x) + 0.5,
@@ -69,17 +66,6 @@ export function get_entity(dimension, location, family) {
 	})[0]
 }
 
-export const getHand = (() => {
-	const handsMap = new WeakMap();
-	/**
-	 * @param {mc.Entity} source
-	 * @returns {mc.ContainerSlot} 'Mainhand' ContainerSlot of the entity
-	 **/
-	return source => handsMap.get(source) ?? handsMap.set(
-		source, source.getComponent("equippable")?.getEquipmentSlot("Mainhand")
-	).get(source)
-
-})();
 
 /**@type {<T>(list?: T[])=>T}  */
 export function select_random_item(list = []) {
@@ -107,7 +93,7 @@ export const pickaxes = new Set([
 export function isUnderground(player) {
 	let block = player.dimension.getTopmostBlock(player.location)
 	if (player.location.y >= block.location.y) return false
-	/*commented untill isSolid release 
+	/*commented until isSolid release 
 	let min = player.dimension.heightRange.min
 	while (!block.isSolid && block.location.y > min) {
 		if (player.location.y >= block.location.y) return false
@@ -132,17 +118,3 @@ export function getPlanetByLocation(location){
         z >= planet.range.start.z && z <= planet.range.end.z)
     )?.class;
 }
-//needs to be moved to addon settings after manifest v3 release
-mc.system.beforeEvents.startup.subscribe(({ customCommandRegistry }) => {
-	customCommandRegistry.registerCommand({name: "cosmos:render_distance", 
-		cheatsRequired: false, 
-		description: "Changes the Script Render Distance", 
-		permissionLevel: 1,
-	    mandatoryParameters: [{ type: mc.CustomCommandParamType.Integer, name: "chunks" }]
-	}, 
-	(CustomCommandOrigin, chunks) => {
-		if(CustomCommandOrigin.sourceType == "Entity" && CustomCommandOrigin.sourceEntity.typeId == "minecraft:player"){
-			mc.world.setDynamicProperty("render_distance", chunks);
-		}
-	});
-});

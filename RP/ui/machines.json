@@ -55,12 +55,15 @@
 		]
 	},
 	"item_text@machines.specific_slot": {
+		"$alignment": "top_left",
+		"$color": "$title_text_color",
 		"controls": [
 			{ "text": {
 				"type": "label",
 				"text": "#hover_text",
 				"collection_index": "$index",
-				"color": "$title_text_color",
+				"color": "$color",
+				"text_alignment": "$alignment",
 				"bindings": "$fetch_item_hover"
 			}}
 		]
@@ -99,6 +102,75 @@
 								"$target": "#size_binding_y",
 								"$visible_if": "(not (#data = 1000))"
 							}}
+						]
+					}}
+				]
+			}},
+			{ "tank_front": {
+				"type": "image",
+				"texture": "textures/ui/cosmos/machines/tank_front",
+				"layer": 3
+			}},
+			{ "tank_hover@machines.item_hover": {} }
+		]
+	},
+	
+	"any_fluid_tank": {
+		"type":"panel",
+		"size": [ 18, 40 ],
+		"controls": [
+			{ "tank_back": {
+				"type":"image",
+				"texture": "textures/ui/cosmos/machines/tank_back",
+				"layer": 1
+			}},
+			{ "fluid@machines.specific_slot": {
+				"anchor_from": "bottom_left",
+				"anchor_to": "bottom_left",
+				"offset": [0, -1],
+				"layer": 2,
+				"controls": [
+					{ "unit": {
+						"type": "panel",
+						"collection_index": "$index",
+						"anchor_from": "bottom_left",
+						"anchor_to": "bottom_left",
+						"size": [0, 1],
+						"controls": [
+							{ "clipper": {
+								"type": "panel",
+								"clips_children": true,
+								"anchor_from": "bottom_left",
+								"anchor_to": "bottom_left",
+								"size": [18, 1],
+								"bindings": "$use_durability",
+								"$source": "#data",
+								"$target": "#size_binding_y",
+								"$visible_if": "(not (#data = 1000))",
+								"controls": [
+									{ "image@machines.specific_slot": {
+										"anchor_from": "bottom_left",
+										"anchor_to": "bottom_left",
+										"controls": [
+											{ "image": {
+												"type": "image",
+												"tiled": true,
+												"collection_index": "$texture_index",
+												"texture": "textures/ui/liquids/fluid_atlas",
+												"uv": "#texture_uv",
+												"uv_size": [16, 16],
+												"anchor_from": "bottom_left",
+												"anchor_to": "bottom_left",
+												"size": [18, 40],
+												"bindings": "$read_fluid_atlas",
+												"$source": "((#data - 1) * 16)",
+												"$target": "#texture_uv",
+												"$visible_if": "(not (#data = 1000))"
+											}}
+										]
+									}}
+								]
+							}}							
 						]
 					}}
 				]
@@ -236,7 +308,7 @@
 					{
 						"from_button_id": "button.menu_select",
 						"to_button_id": "button.container_auto_place",
-						"mapping_type": "pressed"
+        				"mapping_type": "pressed"
 					},
 					{
 						"from_button_id": "button.menu_ok",

@@ -7,11 +7,17 @@
     "aluminum_wire": {
       "textures": "textures/blocks/aluminum_wire"
     },
+    "aluminum_wire_switch": {
+      "textures": "textures/blocks/aluminum_wire_switch"
+    },
     "buggy_fueling_pad": {
       "textures": "textures/blocks/buggy_fueling_pad"
     },
     "cheese_block": {
       "textures": "textures/blocks/cheese_block"
+    },
+    "cryogenic_chamber": {
+      "textures": "textures/blocks/cryogenic_chamber"
     },
     "dishbase": {
       "textures": "textures/blocks/dishbase"
@@ -100,7 +106,7 @@
     "oil": {
       "textures": "textures/blocks/fluids/oil"
     },
-    "liquid_oxygen": {
+     "liquid_oxygen": {
       "textures": "textures/blocks/fluids/liquid_oxygen"
     },
     "tank_water": {

@@ -1,10 +1,9 @@
-import { world, system, BlockPermutation, ItemStack } from "@minecraft/server";
+import { world, system, ItemStack } from "@minecraft/server";
 import machines from "./AllMachineBlocks";
 import { detach_wires, attach_to_wires } from "../blocks/aluminum_wire";
 import { attach_pipes, detach_pipes } from "../blocks/fluid_pipe";
 import { pickaxes } from "../../api/utils";
 import { setSolarPanelBlocks } from "./blocks/BasicSolarPanel";
-import { delete_storage } from "../matter/fluid_network";
 
 const multi_block_machines = {
 	"cosmos:basic_solar_panel": setSolarPanelBlocks
@@ -156,133 +155,66 @@ world.afterEvents.worldLoad.subscribe(() => {
 			if(!block) return;
 			const data = machines[machineData.type]
 			// tick the machine
-			data.class(machineEntity, block)
+			data.onTick(machineEntity, block)
 			// hopper support every 8 ticks
 			if (system.currentTick % 8 == 0) hopper_interactions(block, machineEntity, data)
 		});
 	});
 });
 
-
-
-system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
-	blockComponentRegistry.registerCustomComponent('cosmos:machine', {
-		beforeOnPlayerPlace(event) {
-			const { block, permutationToPlace: perm } = event;
-			const machine_name = perm.type.id.replace('cosmos:', '');
-			const machine_object = machines[machine_name];
-			if(machine_object.multi_block && !multi_block_machines[perm.type.id](block)){event.cancel = true; return;}
-			
-			system.run(() => {
-				const machineEntity = block.dimension.spawnEntity(perm.type.id, block.bottomCenter());
-				machineEntity.nameTag = machine_object.ui;
-				try { machine_object.place(machineEntity) } catch { null }
-				const dynamic_object = JSON.parse(machineEntity.getDynamicProperty("machine_data") ?? "{}");
-				machine_entities.set(machineEntity.id, { type: machine_name, location: block.location, entity_data: dynamic_object });
-				if (perm.getState("cosmos:full")) {
-					event.permutationToPlace = perm.withState("cosmos:full", false);
-				}
-				attach_to_wires(block);
-				attach_pipes(block)
-			});
-		},
-		onPlayerBreak({ block, dimension, brokenBlockPermutation: perm }) {
-			const machineEntity = dimension.getEntities({
-				type: perm.type.id,
-				location: {
-					x: Math.floor(block.location.x) + 0.5,
-					y: Math.floor(block.location.y) + 0.5,
-					z: Math.floor(block.location.z) + 0.5,
-				},
-				maxDistance: 0.5,
-			})[0];
-			if (!machineEntity) return
-
-			delete_storage(machineEntity);
-			detach_wires(block);
-			detach_pipes(block);
-
-			const machine_name = machineEntity.typeId.replace('cosmos:', '');
-			if(machines[machine_name].multi_block) multi_block_machines[machineEntity.typeId](block, true);
-
-			machine_entities.delete(machineEntity.id);
-			const container = machineEntity.getComponent('minecraft:inventory')?.container;
-			if (container) {
-				for (let i = 0; i < container.size; i++) {
-					const itemId = container.getItem(i)?.typeId;
-					if (!['cosmos:ui', 'cosmos:ui_button'].includes(itemId)) continue;
-					container.setItem(i);
-				}
+export const machine_component = {
+	beforeOnPlayerPlace(event) {
+		const { block, permutationToPlace: perm } = event;
+		const machine_name = perm.type.id.replace('cosmos:', '');
+		const machine_object = machines[machine_name];
+		if(machine_object.multi_block && !multi_block_machines[perm.type.id](block)){event.cancel = true; return;}
+		
+		system.run(() => {
+			const entity = block.dimension.spawnEntity(perm.type.id, block.bottomCenter());
+			entity.nameTag = machine_object.ui;
+			if (typeof machine_object.onPlace == 'function') machine_object.onPlace(entity, block)
+			const dynamic_object = JSON.parse(entity.getDynamicProperty("machine_data") ?? "{}");
+			machine_entities.set(entity.id, { type: machine_name, location: block.location, entity_data: dynamic_object });
+			if (perm.getState("cosmos:full")) {
+				event.permutationToPlace = perm.withState("cosmos:full", false);
 			}
-			machineEntity?.kill();
-			machineEntity?.remove();
-		},
-	});
-});
+			attach_to_wires(block);
+			attach_pipes(block)
+		});
+	},
+	onPlayerBreak({ block, dimension, brokenBlockPermutation: perm }) {
+		detach_wires(block);
+		detach_pipes(block);
+		
+		const entity = dimension.getEntities({
+			type: perm.type.id,
+			location: {
+				x: Math.floor(block.location.x) + 0.5,
+				y: Math.floor(block.location.y) + 0.5,
+				z: Math.floor(block.location.z) + 0.5,
+			},
+			maxDistance: 0.5,
+		})[0];
+		if (!entity) return
 
-world.afterEvents.entityLoad.subscribe(({ entity }) => {
-	reload_machine(entity);
-});
+		const machine_name = entity.typeId.replace('cosmos:', '');
+		if(machines[machine_name].multi_block) multi_block_machines[entity.typeId](block, true);
 
-world.beforeEvents.playerInteractWithEntity.subscribe((e) => {
-	const { target: entity, player } = e;
-	if (!machine_entities.has(entity.id)) return;
-	if (!player.isSneaking) return;
-
-	e.cancel = true;
-	const equipment = player.getComponent("equippable");
-	const selectedItem = equipment.getEquipment("Mainhand");
-	if (!selectedItem) return;
-
-	if (selectedItem.typeId === "minecraft:hopper") {
-		const machineBlock = player.dimension.getBlock(entity.location);
-		if (machineBlock) {
-			const facingDirection = (() => {
-				const dx = player.location.x - entity.location.x;
-				const dz = player.location.z - entity.location.z;
-				if (Math.abs(dx) > Math.abs(dz)) return dx > 0 ? 1 : 3;
-				else return dz > 0 ? 2 : 0;
-			})();
-			const getAdjacentBlockLocation = (location, facingDirection) => {
-				switch (facingDirection) {
-					case 0: return { x: location.x, y: location.y, z: location.z - 1 };
-					case 1: return { x: location.x + 1, y: location.y, z: location.z };
-					case 2: return { x: location.x, y: location.y, z: location.z + 1 };
-					case 3: return { x: location.x - 1, y: location.y, z: location.z };
-					default: return location;
-				}
-			};
-
-			const hopperLocation = getAdjacentBlockLocation(machineBlock.location, facingDirection);
-			const hopperBlock = player.dimension.getBlock(hopperLocation);
-
-			const hasEntitiesAt = (dimension, location) => {
-				const entities = dimension.getEntities({
-					location: { x: location.x + 0.5, y: location.y + 0.5, z: location.z + 0.5 },
-					maxDistance: 0.5,
-				});
-				return entities.length > 0;
-			};
-
-			if (hopperBlock.typeId === "minecraft:air" && !hasEntitiesAt(player.dimension, hopperLocation)) {
-				const hopperPermutation = BlockPermutation.resolve("minecraft:hopper")
-					.withState("facing_direction", facingDirection);
-
-				system.run(() => {
-					hopperBlock.setPermutation(hopperPermutation);
-					if (player.getGameMode() !== "Creative") {
-						if (selectedItem.amount === 1) {
-							equipment.setEquipment("Mainhand", undefined);
-						} else {
-							selectedItem.amount -= 1;
-							equipment.setEquipment("Mainhand", selectedItem);
-						}
-					}
-				});
+		machine_entities.delete(entity.id);
+		const container = entity.getComponent('minecraft:inventory')?.container;
+		if (container) {
+			for (let i = 0; i < container.size; i++) {
+				const itemId = container.getItem(i)?.typeId;
+				if (!['cosmos:ui', 'cosmos:ui_button'].includes(itemId)) continue;
+				container.setItem(i);
 			}
 		}
-	}
-});
+		entity.kill(); // kill to make it drop the items
+		entity.remove();
+	},
+}
+
+world.afterEvents.entityLoad.subscribe(({ entity }) => reload_machine(entity));
 
 //remove the ui item entities
 world.afterEvents.entitySpawn.subscribe((data) => {

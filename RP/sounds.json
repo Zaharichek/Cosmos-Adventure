@@ -135,6 +135,12 @@
             },
             "volume": 0
          },
+         "cosmos:deconstructor": {
+            "events": {
+               "death": "none"
+            },
+            "volume": 0
+         },
          "cosmos:oxygen_collector": {
             "events": {
                "death": "none"
@@ -172,6 +178,12 @@
             "volume": 0
          },
          "cosmos:nasa_workbench": {
+            "events": {
+               "death": "none"
+            },
+            "volume": 0
+         },
+         "cosmos:oxygen_storage_module": {
             "events": {
                "death": "none"
             },
@@ -238,6 +250,12 @@
             "volume": 0
          },
          "cosmos:cargo_rocket": {
+            "events": {
+               "death": "none"
+            },
+            "volume": 0
+         },
+         "cosmos:moon_buggy": {
             "events": {
                "death": "none"
             },

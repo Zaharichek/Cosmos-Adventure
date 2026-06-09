@@ -61,6 +61,28 @@
 			"target_property_name": "#visible"
 		}
 	],
+	"$read_fluid_atlas": [
+		{
+			"binding_type": "collection",
+			"binding_collection_name": "container_items",
+			"binding_name": "#item_durability_current_amount"
+		},
+		{
+			"binding_type": "view",
+			"source_property_name": "(#data + (#data < #item_durability_current_amount) - (#data > #item_durability_current_amount))",
+			"target_property_name": "#data"
+		},
+		{
+			"binding_type": "view",
+			"source_property_name": "$source",
+			"target_property_name": "$target"
+		},
+		{
+			"binding_type": "view",
+			"source_property_name": "$visible_if",
+			"target_property_name": "#visible"
+		}
+	],
 	"$visibility": [
     	{
 			"binding_type": "view",
@@ -101,7 +123,7 @@
 		},
 		{
 			"binding_type": "view",
-			"source_property_name": "(#text - $tag - '§o' - '§f' )",
+			"source_property_name": "(#text - $tag - '§o' - '§f' - '\n§8Has Custom Properties')", // only works in english
 			"target_property_name": "#text"
 		}
 	],
@@ -113,7 +135,7 @@
 		},
 		{
 			"binding_type": "view",
-			"source_property_name": "(#hover_text - '§o')",
+			"source_property_name": "(#hover_text - '§o' - '\n§8Has Custom Properties')", // only works in english
 			"target_property_name": "#hover_text"
 		}
 	],
