@@ -154,7 +154,7 @@ function connect_wires(wire) {
 	const neighbors = six_neighbors(wire)
 	const states = {}
 	for (const [side, block] of Object.entries(neighbors)) {
-		if (block.hasTag("wire")) {
+		if (block.hasTag("wire") && (!block.hasTag("switchable") || block.permutation.getState("cosmos:switch"))) {
 			block.setPermutation(block.permutation.withState(opposite_side[side], true))
 			states[same_side[side]] = true
 		}
@@ -186,9 +186,12 @@ export const switchable_wire_component = {
 	onRedstoneUpdate({block, powerLevel}) {
         if (powerLevel){
 			 block.setPermutation(BlockPermutation.resolve(block.typeId, { "cosmos:up": false, "cosmos:down": false,
-			"cosmos:north": false, "cosmos:east": false, "cosmos:south": false, "cosmos:west": false }));
+			"cosmos:north": false, "cosmos:east": false, "cosmos:south": false, "cosmos:west": false,  "cosmos:switch": false}));
 			detach_wires(block)
 		}
-        else connect_wires(block)
+        else{
+			connect_wires(block)
+			block.setPermutation(block.permutation.withState("cosmos:switch", true));
+		}
     }
 }
