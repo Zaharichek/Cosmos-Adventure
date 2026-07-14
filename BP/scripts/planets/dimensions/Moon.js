@@ -1,8 +1,9 @@
 import { world, system } from "@minecraft/server";
 import { Planet } from "../GalacticraftPlanets";
-import { dismount, saved_rocket_items, rocket_nametags } from "../../api/player/liftoff";
+import { dismount, rocket_nametags } from "../../api/player/liftoff";
 import { set_items_to_vehicle } from "../../core/vehicles/Vehicle";
 import { save_dynamic_object } from "../../api/utils";
+import { saved_rocket_items } from "../../api/player/liftoff";
 
 export class Moon extends Planet{
     constructor(){
@@ -13,12 +14,12 @@ export class Moon extends Planet{
         this._center = {x: 75000, z: 75000};
         this._time = {length: 192000, day: 96000};
         this._fuelMultiplier = 0.7;
+        this._solarEnergyMultiplier = 1.4;
     }
     launching(player, data, loaded = false){
         player.runCommand("fog @s remove mars")
         if(loaded){ moon_lander(player, data); return;}
         let loc = { x: this._center.x + (Math.random() * 20), y: 260, z: this._center.z + (Math.random() * 20) };
-        if(data.items) saved_rocket_items.set(data.id, data.items);
         
         player.setDynamicProperty('dimension', JSON.stringify(data));
         if(player.dimension.id == "minecraft:the_end"){ 

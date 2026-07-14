@@ -1,7 +1,7 @@
 import { system } from "@minecraft/server";
 import { load_dynamic_object, save_dynamic_object } from "../../../api/utils"
 import { charge_from_battery, charge_from_machine } from "../../matter/electricity";
-import { fluid_names, fluid_textures, load_from_canister } from "../../matter/fluids";
+import { fluid_names, fluid_textures, load_from_canister, input_fluid, output_fluid } from "../../matter/fluids";
 import { machine_buttons, setup_ui_button } from "../MachineButtons";
 
 const InputSlot = 0, BatterySlot = 1, OutputSlot = 2
@@ -11,7 +11,7 @@ const EnergyDisplay = 7, StatusDisplay = 8, ButtonSlot = 9
 const ProcessButtonText = (state) => state ? 'Process' : 'Stop'
 
 const data = {
-	energy: { input: "below", capacity: 16000, maxInput: 900 },
+	energy: { input: "below", capacity: 16000, maxInput: 150 },
 	gas: { input: "left", capacity: 4000 },
 	liquid: { output: "right", capacity: 2000 },
 	onTick(entity, block) {
@@ -24,7 +24,6 @@ const data = {
 		let gas = variables.input_tank ?? {amount: 0}
 		let liquid = variables.output_tank ?? {amount: 0}
 
-		
 		// manage energy
 		energy = charge_from_machine(entity, block, energy)
 		energy = charge_from_battery(entity, energy, BatterySlot)
@@ -32,10 +31,12 @@ const data = {
 
 		// manage fluids
 		const empty = gas.type == undefined
+		if(!empty) input_fluid({type: gas.type, slot: 'gas', liquid_type: 'gas'}, entity, block, gas.amount);
+
 		const canister = container.getItem(InputSlot); if (canister) {
 			// fill with O2 gas
 			if (canister.typeId == "cosmos:o2_canister" && (empty || gas.type == "o2_gas")) {
-				gas.type = "o2_gas"
+				gas.type = "o2gas"
 				gas.amount = load_from_canister({
 					canister, ratio: 0.5,
 					amount: gas.amount,
@@ -45,7 +46,7 @@ const data = {
 			}
 			// fill with N2 gas
 			else if (canister.typeId == "cosmos:n2_canister" && (empty || gas.type == "n2_gas")) {
-				gas.type = "n2_gas"
+				gas.type = "n2gas"
 				gas.amount = load_from_canister({
 					canister, ratio: 0.5,
 					amount: gas.amount,

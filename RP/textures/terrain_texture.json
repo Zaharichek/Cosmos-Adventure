@@ -79,6 +79,9 @@
     "walkway": {
       "textures": "textures/blocks/walkway"
     },
+    "wire_walkway": {
+      "textures": "textures/blocks/wire_walkway"
+    },
 
     //arc_lamp
     "arc_lamp_off": {
@@ -111,6 +114,9 @@
     },
     "tank_water": {
       "textures": "textures/blocks/fluids/tank_water"
+    },
+    "hydrogen": {
+      "textures": "textures/blocks/fluids/hydrogen"
     },
 
     //machines

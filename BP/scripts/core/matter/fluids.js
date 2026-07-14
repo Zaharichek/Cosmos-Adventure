@@ -1,7 +1,7 @@
 import { world, ItemStack, system } from "@minecraft/server"
 import { compare_position, get_entity, load_dynamic_object, location_of_side, save_dynamic_object } from "../../api/utils"
 import { get_data } from "../machines/Machine"
-import { save_fluid_amount, get_fluid_amount } from "./fluid_network"
+import { create_network, fluid_network} from "./fluid_network"
 import { get_direction, pipe_same_side } from "../blocks/fluid_pipe"
 
 function evaporate(block) {
@@ -142,6 +142,7 @@ export const bucket_component = {
 
 export function output_fluid(fluid_data, entity, block, fluid) {
     if(system.currentTick % 20) return fluid;
+    
     const data = get_data(entity)
     const target_location = location_of_side(block, data[fluid_data.slot].output)
     if (!target_location) return fluid
@@ -152,13 +153,22 @@ export function output_fluid(fluid_data, entity, block, fluid) {
     }
     direction = get_direction(direction);
     if (target_block.hasTag("fluid_pipe") && target_block.permutation.getState(pipe_same_side[direction]) == 2) {
-        fluid = save_fluid_amount(entity, fluid_data, target_block, fluid);
-        return fluid;
+        let network_id = world.getDynamicProperty(JSON.stringify(target_block.location));
+        if(!network_id){
+            fluid = create_network(target_block, fluid_data.type, fluid);
+            return fluid;
+        }else if(fluid_network[network_id]?.t == fluid_data.type){
+            let network = fluid_network[network_id];
+            let capacity = Math.min(network.p * 200 - network.c, fluid);
+            network.c += capacity;
+            fluid -= capacity;
+            world.setDynamicProperty("fluid_network", JSON.stringify(fluid_network))
+        }
     }
     return fluid;
 }
 
-export function input_fluid(fluid_data, entity, block, fluid) {
+export function input_fluid(fluid_data, entity, block, fluid, space) {
     if(system.currentTick % 20) return fluid;
     const data = get_data(entity)
     const source_location = location_of_side(block, data[fluid_data.slot].input)
@@ -166,25 +176,23 @@ export function input_fluid(fluid_data, entity, block, fluid) {
     const source_block = block.dimension.getBlock(source_location)
 
     if (source_block?.hasTag("fluid_pipe")) {
-        fluid = get_fluid_amount(entity, fluid_data, fluid)
-        return fluid
-    } else {
-        const source_entity = get_entity(entity.dimension, source_location, `has_${fluid_data.type}_output`)
-        if (!source_entity) return fluid
-        
-        let variables = load_dynamic_object(source_entity, 'machine_data');
-        const source_fluid = variables?.[fluid_data.type] ?? 0
-        if (source_fluid == 0) return fluid
-        
-        const io = location_of_side(source_block, get_data(source_entity)[fluid_data.type].output)
-        if (!compare_position(entity.location, io)) return fluid
-
-        const space = data[fluid_data.slot].capacity - fluid;
-
-        variables[fluid_data.type] -= Math.min(source_fluid, space);
-        save_dynamic_object(source_entity, variables, 'machine_data')
-        return fluid + Math.min(source_fluid, space);
+        let network = world.getDynamicProperty(JSON.stringify(source_block.location));
+        network = fluid_network[network];
+        if(network?.t == fluid_data.type){
+            if(!network.m?.includes(entity.id)){
+                network.m?.push(entity.id);
+                world.setDynamicProperty("fluid_network", JSON.stringify(fluid_network))
+                return fluid;
+            }else{
+                let extracted_fluid = Math.min(space, Math.floor(network.c/(network.m.length ?? 1)));
+                network.c -= extracted_fluid;
+                fluid += extracted_fluid;
+                world.setDynamicProperty("fluid_network", JSON.stringify(fluid_network))
+                return fluid;
+            }
+        }
     }
+    return fluid;
 }
 
 export function load_from_item(amount, fluid_type, capacity, container, slot) {

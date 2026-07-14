@@ -14,7 +14,7 @@ import GasLiquefier from './blocks/GasLiquefier'
 import ElectricFurnace from './blocks/ElectricFurnace'
 import Parachest from './blocks/Parachest'
 import OxygenDistributor from './blocks/OxygenDistributor'
-import BasicSolarPanel from './blocks/BasicSolarPanel'
+import SolarPanel from './blocks/SolarPanel'
 import Deconstructor from './blocks/Deconstructor'
 
 const AllMachines = {
@@ -22,9 +22,12 @@ const AllMachines = {
 	compressor: Compressor,
 	energy_storage_module: EnergyStorage.energy_storage_module,
 	energy_storage_cluster: EnergyStorage.energy_storage_cluster,
-	electric_compressor: ElectricCompressor,
-	electric_furnace: ElectricFurnace,
-	basic_solar_panel: BasicSolarPanel,
+	electric_compressor: ElectricCompressor.electric_compressor,
+	advanced_compressor: ElectricCompressor.advanced_compressor,
+	electric_furnace: ElectricFurnace.electric_furnace,
+	electric_arc_furnace: ElectricFurnace.electric_arc_furnace,
+	basic_solar_panel: SolarPanel.basic_solar_panel,
+	advanced_solar_panel: SolarPanel.advanced_solar_panel,
 	oxygen_collector: OxygenCollector,
 	oxygen_compressor: OxygenCompressor,
 	oxygen_distributor: OxygenDistributor,
