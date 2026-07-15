@@ -10,36 +10,40 @@ export function create_network(pipe, type, fluid_amount){
     let new_id = parseInt(last_id) + 1;
     world.setDynamicProperty(JSON.stringify(pipe.location), new_id);
     fluid_network[new_id] = {type};
-    let pipes_number = update_pipe_network(pipe, new_id);
+    let info = update_pipe_network(pipe, new_id);
     
-    let space = pipes_number * 200;
+    let space = info[0] * 200;
     let capacity = Math.min(space, fluid_amount);
     fluid_amount -= capacity;
 
     //t is type, p is number of pipes, c is capacity, m is for input machines
-    fluid_network[new_id] = {t: type, p: pipes_number, c: capacity, m: []};
-    world.setDynamicProperty("fluid_network", JSON.stringify(fluid_network))
+    fluid_network[new_id] = {t: type, p: info[0], c: capacity, m: info[1]};
+    save_network();
     return fluid_amount;
 }
 
-export function refresh_network(pipe, id){
-    let pipes_number = update_pipe_network(pipe, id);
-    if(id) fluid_network[id].p = pipes_number;
-    world.setDynamicProperty("fluid_networkd", JSON.stringify(fluid_network))
+export function refresh_network(pipe, id, perm = pipe.permutation){
+    let info = update_pipe_network(pipe, id, perm);
+    if(id && fluid_network[id]){
+        console.warn(JSON.stringify(info))
+        fluid_network[id].p = info[0];
+        fluid_network[id].m = info[1];
+        fluid_network[id].c = Math.min(fluid_network[id].c, info[0] * 200);
+    }
+    save_network();
+}
+
+export function save_network(){
+    world.setDynamicProperty("fluid_network", JSON.stringify(fluid_network));
 }
 
 //updates visual part of pipes
-export function* update_fluid(pipe, fluid, liquid_type){
+export function* update_fluid(pipe, fluid){
     let updated_pipes = [];
     let pipes_to_update = [];
     const new_type = (fluid == "empty")? "cosmos:fluid_pipe" : "cosmos:fluid_pipe" + "_" + fluid;
     pipes_to_update = get_sides(pipe, updated_pipes);
-    let pipe_states = pipe.permutation.getAllStates();
-
-    if(liquid_type && fluid != "empty") pipe_states["cosmos:liquid_type"] = liquid_type;
-    else delete pipe_states["cosmos:liquid_type"];
-
-    pipe.setPermutation(BlockPermutation.resolve(new_type, pipe_states));
+    pipe.setPermutation(BlockPermutation.resolve(new_type, pipe.permutation.getAllStates()))
 
     for(let i = 0; i < pipes_to_update.length; i++){
         let block = pipes_to_update[i];
@@ -47,12 +51,7 @@ export function* update_fluid(pipe, fluid, liquid_type){
         let new_pipe = pipe.dimension.getBlock(block);
         if(new_pipe && !new_pipe.isAir && new_pipe.hasTag("fluid_pipe")){
             pipes_to_update = [...pipes_to_update, ...get_sides(new_pipe, updated_pipes)]
-            let new_pipe_states = new_pipe.permutation.getAllStates();
-
-            if(liquid_type && fluid != "empty") new_pipe_states["cosmos:liquid_type"] = liquid_type;
-            else delete new_pipe_states["cosmos:liquid_type"];
-
-            new_pipe.setPermutation(BlockPermutation.resolve(new_type, new_pipe_states));
+            new_pipe.setPermutation(BlockPermutation.resolve(new_type, new_pipe.permutation.getAllStates()));
             yield;
         }
     }

@@ -4,7 +4,7 @@ import { str_pos } from "./aluminum_wire"
 import { get_entity, six_neighbors } from "../../api/utils.js"
 import { get_data } from "../machines/Machine.js"
 import { compare_position, location_of_side } from "../../api/utils.js"
-import { update_fluid, fluid_network, create_network, refresh_network } from "../matter/fluid_network.js"
+import { update_fluid, fluid_network, create_network, refresh_network, save_network} from "../matter/fluid_network.js"
 import { load_dynamic_object } from "../../api/utils.js"
 
 export function side_blocks(loc){ 
@@ -48,13 +48,35 @@ export function get_direction(location){
 		if(side[0].x == location.x && side[0].y == location.y && side[0].z == location.z) return side[1]
 	}
 }
-export function detach_pipes(block) {
-	const neighbors = six_neighbors(block)
+export function detach_pipes(block, perm, type = "pipe"){
+	const neighbors = six_neighbors(block);
+	let id = world.getDynamicProperty(JSON.stringify(block.location));
+	let pipes = [];
+	let network_ids = new Set();
 	for (const side in neighbors) {
 		const pipe = neighbors[side]
-		if (!pipe.hasTag("fluid_pipe")) continue
-		pipe.setPermutation(pipe.permutation.withState(pipe_opposite_side[side], 0))
+		if (!pipe.hasTag("fluid_pipe") || !pipe.permutation.getState(pipe_opposite_side[side])) continue;
+		let network_id = world.getDynamicProperty(JSON.stringify(pipe.location));
+		network_ids.add(network_id);
+		pipes.push([pipe, side, network_id]);
 	}
+
+	if(type == "pipe" && id && pipes.length > 1 && network_ids.size > 0){
+		refresh_network(block, undefined, perm);
+	}else if(type == "pipe" && id && pipes.length == 1 && network_ids.size > 0){
+		refresh_network(block, id, perm);
+	}else if(type == "pipe" && id && !pipes.length){
+		delete fluid_network[id];
+	    save_network();
+	}
+	world.setDynamicProperty(JSON.stringify(block.location), undefined);
+
+	pipes.forEach((pipe) => {
+		pipe[0].setPermutation(pipe[0].permutation.withState(pipe_opposite_side[pipe[1]], 0));
+		if(type == "machine" && pipe[2]){
+			refresh_network(pipe[0], pipe[2]);
+		}
+	});
 }
 export function attach_pipes(block){
 	const data = Object.entries(machines[block.typeId.replace('cosmos:', '')]);
@@ -95,7 +117,15 @@ function getSides(pipeOs, permutation, pipes){
 		let pipe_in_map = pipes.get(loc_as_string);
 		if(!pipe_in_map){
 			let connected_block = pipeOs.dimension.getBlock(blocks[block]);
-			if(connected_block?.hasTag("fluid_pipe")) pipes.set(loc_as_string, connected_block);
+			if(connected_block?.hasTag("fluid_pipe")) pipes.set(loc_as_string, {type: 'pipe', connected: undefined, block: connected_block});
+			else pipes.set(loc_as_string, {type: undefined, connected: [loc], block: connected_block});
+				
+		}else if(pipe_in_map.connected){
+			let position = pipe_in_map.connected.find((element) => !compare_position(loc, element));
+			if(position){
+				pipe_in_map.connected.push(loc);
+			}
+			pipes.set(loc_as_string, pipe_in_map);
 		}
 	}
 }
@@ -104,23 +134,43 @@ export function update_pipe_network(first_pipe, id, perm = first_pipe.permutatio
 	let pipesWillDone = new Map();
 	let pipesIterator = pipesWillDone[Symbol.iterator]();
 	let pipes_counter = 0;
+	let machines_counter = 0;
 	getSides(first_pipe, perm, pipesWillDone);
 	for(let pipe of pipesIterator){
-		let block = pipe[1];
+		let block = pipe[1].block;
 		if(!block.isAir){
 			getSides(block, block.permutation, pipesWillDone)
 		}
 	}
+
 	pipesWillDone.forEach((value, key) => {
-		pipes_counter++;
-		let block = value;
-		let block_id = world.getDynamicProperty(JSON.stringify(block.location));
-		if(block_id != id){
-			delete fluid_network[block_id];
-			world.setDynamicProperty(JSON.stringify(block.location), id);
+		if(value.type == "pipe"){
+			pipes_counter++;
+			let block = value.block;
+			let block_id = world.getDynamicProperty(JSON.stringify(block.location));
+			if(block_id != id){
+			    world.setDynamicProperty(JSON.stringify(block.location), id);
+			    delete fluid_network[block_id];
+		    }
+		}else if(id){
+			let data = get_data(value.block);
+			if(!data) return;
+			let slots = [];
+		    Object.entries(data).forEach((slot) => {
+				if(slot[0] == "energy" || !slot[1].input) return;
+				slots.push(location_of_side(value.block, slot[1].input));
+	        });
+
+			for(let vector of value.connected){
+				for(let input of slots){
+					if(input && compare_position(input, vector)){machines_counter++; break;}
+				}
+		    }
 		}
     });
-	return pipes_counter;
+
+	save_network();
+	return [pipes_counter, machines_counter];
 }
 
 function connect_pipes(pipe) {
@@ -128,7 +178,7 @@ function connect_pipes(pipe) {
 	const states = {}
 	let first_found_id;
 	let pipes = [];
-	let network_ids = new Set();
+	let network_ids = [];
 
 	for (const [side, block] of Object.entries(neighbors)) {
 		if (block.hasTag("fluid_pipe")) {
@@ -137,7 +187,7 @@ function connect_pipes(pipe) {
 
 			let network_id = world.getDynamicProperty(JSON.stringify(block.location));
 			pipes.push(block);
-			network_ids.add(network_id);
+			if(network_id && !network_ids.includes(network_id)) network_ids.push(network_id);
 		}
 
 		const machine_type = block.typeId.split(':').pop()
@@ -155,24 +205,20 @@ function connect_pipes(pipe) {
 	}
 	pipe.setPermutation(BlockPermutation.resolve(pipe.typeId, states));
 
-	let network_id = Array.from(network_ids)[0];
+	let network_id = network_ids[0];
 
 	if(fluid_network[network_id]){
-		if(pipes.length == 1 && network_ids.size == 1){
-			world.setDynamicProperty(JSON.stringify(pipe.location), network_id);
-			fluid_network[network_id].p += 1;
-			world.setDynamicProperty("fluid_network", JSON.stringify(fluid_network))
-		}else if(pipes.length > 1 && network_ids.size == 1){
+        if(pipes.length > 0 && network_ids.length == 1){
 			refresh_network(pipe, network_id)
-		}else if(network_ids.size > 1){
+		}else if(network_ids.length > 1){
 			let capacity = 0;
 			network_ids.forEach((id) => {
 				if(network_id == id) capacity += fluid_network[network_id].c;
-				else delete fluid_network[network_id];
+				else delete fluid_network[id];
 			});
 			refresh_network(pipe, network_id);
 			fluid_network[network_id].c = capacity;
-			world.setDynamicProperty("fluid_network", JSON.stringify(fluid_network))
+			save_network();
 		}
 	}else if(network_id) refresh_network(pipe, undefined);
 }
@@ -182,7 +228,7 @@ export const fluid_pipe_component = {
 	beforeOnPlayerPlace({block}) {
 		system.run(() => {connect_pipes(block)});
 	},
-	onPlayerBreak({block}) {
-		detach_pipes(block)
+	onPlayerBreak({block, brokenBlockPermutation}) {
+		detach_pipes(block, brokenBlockPermutation)
 	},
 }
