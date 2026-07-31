@@ -19,7 +19,7 @@ const data = {
         const variables = load_dynamic_object(entity, "machine_data");
         let energy = variables.energy || 0;
         let o2 = variables.o2 || 0;
-        o2 = input_fluid({type: "o2", slot: "o2", liquid_type: "gas"}, entity, block, o2);
+        o2 = input_fluid({type: "o2", slot: "o2", liquid_type: "g"}, entity, block, o2)[0];
 
         if (!(system.currentTick % 20) && canister) { // input from canister
             if (canister.typeId == "cosmos:o2_canister") o2 = load_from_canister({
@@ -53,18 +53,20 @@ const data = {
             }
         }
         save_dynamic_object(entity, {energy, o2}, "machine_data");
-        
-        let status = (energy <= (data.energy.rate * 20))? "§4Not Enough Power":
-        (!tank || !Object.keys(tanks).includes(tank.typeId))? "§4No Valid Oxygen Tank":
-        (!durability.damage)? "§4Oxygen Tank Full":
-        (o2 == 0)? "§4Not Enough Oxygen":
-        "§2Active";
-        
-        const energy_hover = `Energy Storage\n§aEnergy: ${Math.round(energy)} gJ\n§cMax Energy: ${data.energy.capacity} gJ`;
-        const oxygen_hover = `Oxygen Storage\n§aOxygen: ${o2}/${data["o2"].capacity}`; 
 
-        container.add_ui_display(EnergyDisplay, energy_hover, Math.round((energy / data.energy.capacity) * 55))
-        container.add_ui_display(OxygenDisplay, oxygen_hover, Math.round((o2 / data["o2"].capacity) * 55))
-        container.add_ui_display(StatusDisplay, '§rStatus: ' + status)
+        if(entity.active_ui || !container.getItem(StatusDisplay)){
+            let status = (energy <= (data.energy.rate * 20))? "§4Not Enough Power":
+            (!tank || !Object.keys(tanks).includes(tank.typeId))? "§4No Valid Oxygen Tank":
+            (!durability.damage)? "§4Oxygen Tank Full":
+            (o2 == 0)? "§4Not Enough Oxygen":
+            "§2Active";
+
+            const energy_hover = `Energy Storage\n§aEnergy: ${Math.round(energy)} gJ\n§cMax Energy: ${data.energy.capacity} gJ`;
+            const oxygen_hover = `Oxygen Storage\n§aOxygen: ${o2}/${data["o2"].capacity}`; 
+
+            container.add_ui_display(EnergyDisplay, energy_hover, Math.round((energy / data.energy.capacity) * 55))
+            container.add_ui_display(OxygenDisplay, oxygen_hover, Math.round((o2 / data["o2"].capacity) * 55))
+            container.add_ui_display(StatusDisplay, '§rStatus: ' + status)
+        }
     }
 }; export default data

@@ -16,6 +16,7 @@ import Parachest from './blocks/Parachest'
 import OxygenDistributor from './blocks/OxygenDistributor'
 import SolarPanel from './blocks/SolarPanel'
 import Deconstructor from './blocks/Deconstructor'
+import MethaneSynthesizer from './blocks/MethaneSynthesizer'
 
 const AllMachines = {
 	coal_generator: CoalGenerator,
@@ -39,7 +40,8 @@ const AllMachines = {
 	water_electrolyzer: WaterElectrolyzer,
 	gas_liquefier: GasLiquefier,
 	deconstructor: Deconstructor,
-	parachest: Parachest,
+    methane_synthesizer: MethaneSynthesizer,
+	parachest: Parachest
 }
 
 for (const machine in AllMachines) AllMachines[machine].ui = `§${machine.split('').join('§')}`

@@ -3,7 +3,9 @@ import machines from "./AllMachineBlocks";
 import { detach_wires, attach_to_wires } from "../blocks/aluminum_wire";
 import { attach_pipes, detach_pipes } from "../blocks/fluid_pipe";
 import { pickaxes } from "../../api/utils";
-import { setSolarPanelBlocks } from "./blocks/SolarPanel";
+import { setSolarPanelBlocks } from "./blocks/SolarPanel"; 
+import { astro_miner_bases } from "./blocks/MinerBase";
+import data from "./blocks/CoalGenerator";
 
 const multi_block_machines = {
 	"cosmos:basic_solar_panel": setSolarPanelBlocks,
@@ -145,7 +147,7 @@ function block_entity_access() {
 world.afterEvents.worldLoad.subscribe(() => {
 	world.getDims(dimension => dimension.getEntities({includeFamilies: ['machine']})).forEach(entity => {reload_machine(entity)});
 	system.runInterval(() => {
-		if (machine_entities.size === 0) return;
+		if (machine_entities.size === 0 && astro_miner_bases.size === 0) return;
 		// give block access every 2 ticks
 		if (!(system.currentTick % 2)) block_entity_access();
 
@@ -223,3 +225,13 @@ world.afterEvents.entitySpawn.subscribe((data) => {
 		data.entity.remove();
 	}
 });
+
+world.afterEvents.entityContainerOpened.subscribe(({entity}) => {
+	entity.active_ui = entity.active_ui ? entity.active_ui + 1: 1;
+}, {entityFilter: {families: ["machine"]}});
+
+world.afterEvents.entityContainerClosed.subscribe(({entity}) => {
+	if(entity.active_ui === undefined) return;
+	entity.active_ui -= 1;
+	if(entity.active_ui <= 0) delete entity.active_ui;
+}, {entityFilter: {families: ["machine"]}});

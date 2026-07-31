@@ -43,7 +43,7 @@ const data = {
 		energy = charge_from_machine(entity, block, energy)
 		energy = charge_from_battery(entity, energy, BatterySlot)
 		
-		fuel = input_fluid({type: "fuel", slot: "fuel"}, entity, block, fuel);
+		fuel = input_fluid({type: "fuel", slot: "fuel", liquid_type: "l"}, entity, block, fuel)[0];
 		fuel = load_from_item(fuel, "fuel", data.fuel.capacity, container, InputSlot)
 
 		if (active && energy > data.energy.rate && fuel >= 2 && block) {
@@ -61,15 +61,17 @@ const data = {
 		}
 
 		save_dynamic_object(entity, {energy, fuel}, "machine_data")
+
+		if(entity.active_ui || !container.getItem(StatusDisplay)){
+			const status = fuel == 0 ? "§4No Fuel to Load"
+			: energy <= data.energy.rate ? "§4Not Enough Power"
+		    : active ? "§2Active"
+		    : "§6Ready"
 		
-		const status = fuel == 0 ? "§4No Fuel to Load"
-		: energy <= data.energy.rate ? "§4Not Enough Power"
-		: active ? "§2Active"
-		: "§6Ready"
-		
-		container.add_ui_display(EnergyDisplay, `Energy Storage\n§aEnergy: ${energy} gJ\n§cMax Energy: ${data.energy.capacity} gJ`, Math.round((energy / data.energy.capacity) * 55))
-		container.add_ui_display(FuelDisplay, `Fuel Storage\n§eFuel: ${fuel} / ${data.fuel.capacity} mB`, Math.ceil((Math.ceil(fuel / 1000) / (data.fuel.capacity / 1000)) * 38))
-		container.add_ui_display(StatusDisplay, `§rStatus: ${status}`)
+		    container.add_ui_display(EnergyDisplay, `Energy Storage\n§aEnergy: ${energy} gJ\n§cMax Energy: ${data.energy.capacity} gJ`, Math.round((energy / data.energy.capacity) * 55))
+		    container.add_ui_display(FuelDisplay, `Fuel Storage\n§eFuel: ${fuel} / ${data.fuel.capacity} mB`, Math.ceil((Math.ceil(fuel / 1000) / (data.fuel.capacity / 1000)) * 38))
+		    container.add_ui_display(StatusDisplay, `§rStatus: ${status}`)
+		}
 	},
 	onPlace(entity) {
 		const initial_state = true
