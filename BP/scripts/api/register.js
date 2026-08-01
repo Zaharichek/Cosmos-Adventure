@@ -22,10 +22,10 @@ import { wrench_component } from "../core/items/wrench";
 import { bucket_component } from "../core/matter/fluids";
 import { solar_panel_component } from "../core/machines/blocks/SolarPanel";
 import { machine_component } from "../core/machines/Machine";
+import { multi_block_component } from "../core/mullti_blocks/MultiBlock";
 import { select_solar_system } from "./player/celestial_selector";
 import { volcanic_pickaxe_component } from "../core/items/volcanic_pickaxe";
 import { fluid_tick_component } from "../core/matter/fluid_network";
-import { base_component } from "../core/machines/blocks/MinerBase";
 import nasa_workbench_recipes from "../recipes/nasa_workbench";
 
 system.beforeEvents.startup.subscribe(({customCommandRegistry, itemComponentRegistry, blockComponentRegistry, dimensionRegistry}) => {
@@ -58,7 +58,7 @@ system.beforeEvents.startup.subscribe(({customCommandRegistry, itemComponentRegi
     register_block_component('cosmos:solar_panel', solar_panel_component)
     register_block_component('cosmos:machine', machine_component)
     register_block_component('cosmos:fluid_tick', fluid_tick_component)
-    register_block_component("cosmos:miner_base", base_component)
+    register_block_component("cosmos:multi_block", multi_block_component)
     
     // Item Components
     register_item_component("cosmos:space_gear", space_gear_component)

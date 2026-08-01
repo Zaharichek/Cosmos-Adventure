@@ -16,7 +16,13 @@
 				"controller.render.rocket"
 			],
 			"enable_attachables": false,
-			"hide_armor": true
+			"hide_armor": true,
+			"scripts": {
+				"animate": ["rotation"]
+			},
+			"animations": {
+				"rotation": "animation.astro_miner_base.rotation"
+			}
 		}
 	}
 }

@@ -8,7 +8,7 @@ export const pads = {
 	"cosmos:rocket_launch_pad": "rocket",
 }
 
-function reload_vehicle(entity){
+export function reload_vehicle(entity){
     if (!Object.keys(AllVehicles).includes(entity.typeId) || vehicles.has(entity.id)) return;
     const dynamic_object = JSON.parse(entity.getDynamicProperty("vehicle_data") ?? "{}");
     vehicles.set(entity.id, { entity_data: dynamic_object });

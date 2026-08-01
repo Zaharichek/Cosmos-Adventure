@@ -13,7 +13,7 @@
       "minecraft:material_instances": {
         "*": { "render_method": "blend", "texture": "astro_miner_base" }
       },
-      "cosmos:miner_base": {}
+      "cosmos:multi_block": {}
     },
     "permutations": [
       {

@@ -1,5 +1,6 @@
-import { system } from "@minecraft/server"
+import { system, world } from "@minecraft/server"
 import { load_dynamic_object, save_dynamic_object } from "../../api/utils";
+import { vehicles } from "./Vehicle";
 
 /*
 MINE_LENGTH = 24;
@@ -22,14 +23,19 @@ export default function(entity){
     let ai_state = miner_data.ai_state ?? 0;
     let tick_existed = miner_data.ticks ?? 0;
     let fail_messages = miner_data.fail_messages ?? 0;
-    tick_existed++;
+    let base_id = miner_data.base_id;
+    let base_pos = miner_data.base_pos;
 
-    console.warn(true)
+    tick_existed++;
     let rotation = entity.getRotation();
     if(rotation.y < 0) rotation.y += 360;
     rotation.y += 0.25;
     let velocity = entity.getVelocity();
-    entity.applyImpulse({x: 0 - velocity.x, y: 0.1 - velocity.y, z: 0 - velocity.z})
+
+    let base = base_id ? world.getEntity(miner_data.base_id) : undefined;
+
+    let target_points = load_dynamic_object(entity, "vehicle_data", "target_points");
+    console.warn(JSON.stringify(target_points))
     switch(ai_state) {
         case 0:
             if(tick_existed % 600 == 0){
@@ -49,5 +55,7 @@ function move(entity){
     
 }
 
-function at_base(entity){
+function at_base(miner, base, position){
+    if(!base) base = miner.dimension.getEntities({ type: "cosmos:astro_miner_base", location: {position}, maxDistance: 0.5, })[0];
+    
 }

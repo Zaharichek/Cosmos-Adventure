@@ -3,7 +3,15 @@
     "minecraft:entity": {
         "description": {
             "identifier": "cosmos:astro_miner_base",
-            "is_summonable": true
+            "is_summonable": true,
+			"properties": {
+				"cosmos:rotation": {
+                  "type": "int",
+                  "range": [0, 360],
+                  "default": 0,
+                  "client_sync": true
+                }
+			}
         },
         "component_groups": {
 			"shrink": {
@@ -37,7 +45,8 @@
 			"minecraft:type_family": {
                 "family": [
                     "cosmos",
-					"has_power_input"
+					"has_power_input",
+					"multi_block"
                 ]
             },
 			"minecraft:renders_when_invisible": {},
