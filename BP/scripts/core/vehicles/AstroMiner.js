@@ -1,6 +1,5 @@
-import { system, world } from "@minecraft/server"
+import { system, world, BlockPermutation } from "@minecraft/server"
 import { load_dynamic_object, save_dynamic_object } from "../../api/utils";
-import { vehicles } from "./Vehicle";
 
 /*
 MINE_LENGTH = 24;
@@ -18,44 +17,61 @@ FAIL_RETURNPATHBLOCKED = 5;
 FAIL_ANOTHERWASLINKED = 8;
 */
 
+const unbreakable_blocks = [
+    "minecraft:water", "minecraft:lava", "minecraft:bedrock", "minecraft:end_portal", "minecraft:end_frame",
+    "minecraft:portal", "minecraft:rail", "minecraft:farmland", "minecraft:lever", "minecraft:redstone_wire",
+    "minecraft:stonebrick", "minecraft:mossy_cobblestone", "cosmos:walkway", "cosmos:astro_miner_base"
+];
 export default function(entity){
     let miner_data = load_dynamic_object(entity, "vehicle_data");
-    let ai_state = miner_data.ai_state ?? 0;
-    let tick_existed = miner_data.ticks ?? 0;
-    let fail_messages = miner_data.fail_messages ?? 0;
-    let base_id = miner_data.base_id;
-    let base_pos = miner_data.base_pos;
+    let ai_facing = miner_data.ai_side ?? "down";
+    move_miner(entity, 2, ai_facing);
+    entity.clearVelocity()
+    entity.applyImpulse({x: 0, y: -0.1, z: 0})
+    console.warn(JSON.stringify(miner_data))
+}
 
-    tick_existed++;
-    let rotation = entity.getRotation();
-    if(rotation.y < 0) rotation.y += 360;
-    rotation.y += 0.25;
-    let velocity = entity.getVelocity();
+function move_miner(miner, dist, ai_face){
+    const headings2 = {down: {x: 0, y: -3, z: 0}, up: {x: 0, y: 2, z: 0}, 
+    south: {x: 0, y: 0, z: -3}, north: {x: 0, y: 0, z: 2}, east: {x: 2, y: 0, z: 0}, west: {x: -3, y: 0, z: 0}}
 
-    let base = base_id ? world.getEntity(miner_data.base_id) : undefined;
+    let in_front = {x: Math.floor(miner.location.x + 0.5), y: Math.floor(miner.location.y + 1.5), z: Math.floor(miner.location.z + 0.5)};
 
-    let target_points = load_dynamic_object(entity, "vehicle_data", "target_points");
-    console.warn(JSON.stringify(target_points))
-    switch(ai_state) {
-        case 0:
-            if(tick_existed % 600 == 0){
-                if(fail_messages & 8 > 0){
-
-                }
-            }else{
-                ai_state = 4;
-            }
-            break;
-        case value2:
-            break;
+    if(dist == 2){
+        in_front.x += headings2[ai_face].x; in_front.y += headings2[ai_face].y; in_front.z += headings2[ai_face].z; 
+    }else{
+        if(["up", "south", "west"].includes(ai_face)) dist++;
+        if(dist > 0){ in_front.x += dist; in_front.y += dist; in_front.z += dist; }
     }
-}
 
-function move(entity){
-    
-}
+    let mined_blocks_xz = [{x: 0.5, y: 0.5, z: 0}, {x: -0.5, y: -0.5, z: 0}, {x: 0.5, y: -0.5, z: 0}, {x: -0.5, y: 0.5, z: 0},
+    {x: -1.5, y: -0.5, z: 0}, {x: -1.5, y: 0.5, z: 0}, {x: 1.5, y: -0.5, z: 0}, {x: 1.5, y: 0.5, z: 0},
+    {x: -0.5, y: -1.5, z: 0}, {x: -0.5, y: 1.5, z: 0}, {x: 0.5, y: -1.5, z: 0}, {x: 0.5, y: 1.5, z: 0}
+    ];
 
-function at_base(miner, base, position){
-    if(!base) base = miner.dimension.getEntities({ type: "cosmos:astro_miner_base", location: {position}, maxDistance: 0.5, })[0];
-    
+    let mined_blocks_y = [{x: 0.5, y: 0, z: 0.5}, {x: -0.5, y: 0, z: -0.5}, {x: 0.5, y: 0, z: -0.5}, {x: -0.5, y: 0, z: 0.5},
+    {x: -1.5, y: 0, z: -0.5}, {x: -1.5, y: 0, z: 0.5}, {x: 1.5, y: 0, z: -0.5}, {x: 1.5, y: 0, z: 0.5},
+    {x: -0.5, y: 0, z: -1.5}, {x: -0.5, y: 0, z: 1.5}, {x: 0.5, y: 0, z: -1.5}, {x: 0.5, y: 0, z: 1.5}
+    ];
+
+    let mined_blocks = (ai_face == "up" || ai_face == "down") ? mined_blocks_y: mined_blocks_xz;
+
+    let sides = {north: 0, south: Math.PI, west: Math.PI/2, east: 3 * Math.PI/2, up: 0, down: 0};
+    let is_way_barred = false;
+
+    for(let vector of mined_blocks){
+        vector = {x: in_front.x + (vector.x * Math.cos(sides[ai_face]) - vector.z * Math.sin(sides[ai_face])), 
+            y: in_front.y +  vector.y, 
+            z: in_front.z + (vector.x * Math.sin(sides[ai_face]) + vector.z * Math.cos(sides[ai_face]))};
+        let block = miner.dimension.getBlock(vector);
+        if(block && !block.isAir){
+            if(!unbreakable_blocks.includes(block.typeId) && !block.hasTag("wire") && !block.hasTag("pipe")){
+                block.setPermutation(BlockPermutation.resolve("minecraft:air"))
+            }else is_way_barred = true;
+        }
+    }
+
+    if(is_way_barred){
+
+    }
 }
