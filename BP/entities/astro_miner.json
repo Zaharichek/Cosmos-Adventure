@@ -11,6 +11,12 @@
           "type": "bool",
           "default": false,
           "client_sync": true
+        },
+        "cosmos:rotation_x": {
+          "type": "float",
+          "range": [-90.0, 90.0],
+          "default": 0.0,
+          "client_sync": true
         }
       }
     },

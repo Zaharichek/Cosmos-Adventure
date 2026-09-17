@@ -158,8 +158,15 @@ world.beforeEvents.playerInteractWithEntity.subscribe((event) => {
 			let target_points = find_target_points(base.location, rotation);
 			reload_vehicle(astro_miner);
 			save_dynamic_object(astro_miner, target_points, "vehicle_data", "target_points");
-			save_dynamic_object(astro_miner, {base_id: base.id, base_pos: base.location}, "vehicle_data")
+			save_dynamic_object(astro_miner, {base_id: base.id, base_pos: base.location,
+			    base_facing: {0: "north", 180: "south", 90: "west", 270: "east"}[`${rotation}`] }, "vehicle_data")
 			miner_data.miner_id = astro_miner.id;
+
+			miner_data.ai_facing = (rotation < 45 || rotation > 315) ? "south":
+            (rotation < 135) ? "east":
+			(rotation < 225) ? "north":
+            "west";
+			miner_data.target_rotation = {x: 0, y: rotation};
 			save_dynamic_object(base, miner_data, "multi_block_data")
         });
 		event.cancel = true;
