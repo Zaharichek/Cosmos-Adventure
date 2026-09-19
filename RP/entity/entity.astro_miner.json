@@ -16,6 +16,12 @@
 			"render_controllers": [
 				"controller.render.astro_miner"
 			],
+			"scripts": {
+				"animate": ["rotation"]
+			},
+			"animations": {
+				"rotation": "animation.astro_miner.rotation"
+			},
 			"enable_attachables": false,
 			"hide_armor": true
 		}

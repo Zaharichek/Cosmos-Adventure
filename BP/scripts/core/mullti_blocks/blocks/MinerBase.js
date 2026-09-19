@@ -3,8 +3,10 @@ import { charge_from_battery, charge_from_machine } from "../../matter/electrici
 import { load_dynamic_object, save_dynamic_object } from "../../../api/utils.js";
 import { machine_buttons, setup_ui_button } from "../../machines/MachineButtons.js";
 import { reload_vehicle } from "../../vehicles/Vehicle.js";
+import { rocket_flight } from "../../../api/player/liftoff.js";
 
 const data = {
+	energy: {rate: 20, capacity: 16000},
 	onTick: onTick,
 	onPlace: onPlace,
 	onBreak(event){
@@ -153,20 +155,26 @@ world.beforeEvents.playerInteractWithEntity.subscribe((event) => {
 			let rotation = base.getProperty("cosmos:rotation");
 			let {x, y, z} = base.location;
 			let astro_miner = base.dimension.spawnEntity("cosmos:astro_miner", 
-			{x: x + Math.round(Math.cos((rotation + 90)/57.3)), y: y, z: z + Math.round(Math.sin((rotation + 90)/57.3))}, {initialRotation: rotation});
+			{x: x + Math.round(Math.cos((rotation + 90)/57.3)), y: y, z: z + Math.round(Math.sin((rotation + 90)/57.3))});
+			astro_miner.setProperty("cosmos:rotation_y", rotation);
             
 			let target_points = find_target_points(base.location, rotation);
-			reload_vehicle(astro_miner);
-			save_dynamic_object(astro_miner, target_points, "vehicle_data", "target_points");
-			save_dynamic_object(astro_miner, {base_id: base.id, base_pos: base.location,
-			    base_facing: {0: "north", 180: "south", 90: "west", 270: "east"}[`${rotation}`] }, "vehicle_data")
-			miner_data.miner_id = astro_miner.id;
 
-			miner_data.ai_facing = (rotation < 45 || rotation > 315) ? "south":
+			reload_vehicle(astro_miner);
+			save_dynamic_object(astro_miner, {base_id: base.id, base_pos: {x: base.location.x, y: base.location.y + 1, z: base.location.z},
+			    base_facing: {0: "north", 180: "south", 90: "west", 270: "east"}[`${rotation}`], rotation: {x: 0, y: rotation},
+				targ_rot: {x: 0, y: rotation}}, "vehicle_data")
+			miner_data.miner_id = astro_miner.id;
+			save_dynamic_object(astro_miner, [], "vehicle_data", "waypoints");
+			save_dynamic_object(astro_miner, [], "vehicle_data", "minepoints");
+
+			miner_data.ai_face = (rotation < 45 || rotation > 315) ? "south":
             (rotation < 135) ? "east":
 			(rotation < 225) ? "north":
             "west";
 			miner_data.target_rotation = {x: 0, y: rotation};
+
+			save_dynamic_object(base, target_points, "multi_block_data", "target_points");
 			save_dynamic_object(base, miner_data, "multi_block_data")
         });
 		event.cancel = true;
@@ -192,4 +200,19 @@ export function rotate_base(block, perm){
 	rotation += 90;
 	rotation %= 360;
 	base.setProperty("cosmos:rotation", rotation);
+}
+
+export function find_next_target_base(base){
+	let target_points = load_dynamic_object(base, "multi_block_data", "target_points");
+
+	if(target_points.length){
+		let pos = target_points.shift();
+		if(pos){
+			save_dynamic_object(base, target_points, "multi_block_data", "target_points");
+			return pos;
+		}
+	}
+
+	// No more mining targets, the whole area is mined
+    return undefined;
 }
