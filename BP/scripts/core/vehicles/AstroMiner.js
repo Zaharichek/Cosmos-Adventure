@@ -41,7 +41,7 @@ export default function(entity){
     info.ticks_existed = info.ticks_existed ?? 0;
     info.ticks_existed++;
 
-    info.energy = 12000;
+    info.energy = info.energy ?? 0;
 
     info.ai_state = info.ai_state !== undefined ? info.ai_state: 1;
 
@@ -127,7 +127,7 @@ function at_base(base, miner, info, waypoints, minepoints){
     waypoints.length = 0;
 
     let somethingTransferred = true;
-    if(info.ticks_existed % 5 == 0) somethingTransferred = transfer_items(base, miner, info);
+    if(info.ticks_existed % 5 == 0) somethingTransferred = transfer_items(miner, base, info);
 
     info.inventory_drops = 0;
   
@@ -139,7 +139,7 @@ function at_base(base, miner, info, waypoints, minepoints){
     // Recharge
     if(base_info.energy >= base_data.energy.rate && info.energy < 12000){
         info.energy += 16;
-        base_info.energy -= energy.rate;
+        base_info.energy -= base_data.energy.rate;
     }
     // && this.hasHoldSpace()
     if(info.energy >= 12000 && !somethingTransferred){
@@ -153,7 +153,23 @@ function at_base(base, miner, info, waypoints, minepoints){
 }
 
 function transfer_items(miner, base, info){
+    let miner_container = miner.getComponent("minecraft:inventory").container;
+    if(miner_container.emptySlotsCount == 226) return false;
 
+    let base_container = base.getComponent("minecraft:inventory").container;
+
+    let battery_count = base_container.getItem(72) ? 0: 1;
+    if(base_container.emptySlotsCount == battery_count) return false;
+
+    let size = 226 - miner_container.emptySlotsCount;
+
+    for(let i = -1; i <= size;){
+        i++;
+        let transferred = miner_container.transferItem(i, base_container);
+        if(transferred) return true;
+    }
+
+    return true;
 }
 function freeze(fail, info){
     info.ai_state = 0;

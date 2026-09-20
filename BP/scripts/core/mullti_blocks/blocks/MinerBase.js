@@ -3,10 +3,12 @@ import { charge_from_battery, charge_from_machine } from "../../matter/electrici
 import { load_dynamic_object, save_dynamic_object } from "../../../api/utils.js";
 import { machine_buttons, setup_ui_button } from "../../machines/MachineButtons.js";
 import { reload_vehicle } from "../../vehicles/Vehicle.js";
-import { rocket_flight } from "../../../api/player/liftoff.js";
 
+const BatterySlot = 72;
+const EnergyDisplay = 73;
+const ButtonSlot = 74;
 const data = {
-	energy: {rate: 20, capacity: 16000},
+	energy: {rate: 20, capacity: 16000, maxInput: 50},
 	onTick: onTick,
 	onPlace: onPlace,
 	onBreak(event){
@@ -32,16 +34,22 @@ const data = {
 
 function onTick(astro_miner_base){
 	let miner_data = load_dynamic_object(astro_miner_base, "multi_block_data") ?? {};
+	const container = astro_miner_base.getComponent("minecraft:inventory").container;
     let miner_id = miner_data.miner_id;
+	let energy = miner_data.energy ?? 0;
 	let astro_miner;
 	if(miner_id){
 		astro_miner = world.getEntity(miner_id);
 		if(!astro_miner?.isValid) miner_id = undefined;
 	}
 
+	energy = charge_from_battery(astro_miner_base, energy, BatterySlot)
     if(!(system.currentTick % 20)) astro_miner_base.addEffect("invisibility", 9999, {showParticles: false});
-	save_dynamic_object(astro_miner_base, {miner_id}, "multi_block_data")
+
+	container.add_ui_display(EnergyDisplay, `Energy Storage\n§aEnergy: ${energy} gJ\n§cMax Energy: ${data.energy.capacity} gJ`, Math.round((energy / data.energy.capacity) * 66))
+	save_dynamic_object(astro_miner_base, {miner_id, energy}, "multi_block_data")
 }
+
 
 function find_target_points(location, rotation){
 	let target = {x: location.x, y: 0, z: location.z};
@@ -54,7 +62,6 @@ function find_target_points(location, rotation){
 
 	let miny = Math.max(5, Math.floor(Math.min(location.y * 2 - 90, location.y - 22)));
 	target.y = miny + 5 + Math.floor(Math.random() * 4);
-	console.warn(target.y);
 
 	let points = [];
 	points.push(target);
@@ -141,12 +148,32 @@ function onPlace(event) {
 			}
 		}
 		center.x = center.x/4 + 0.5; center.y = center.y/8 - 0.5; center.z = center.z/4 + 0.5;
-		return block.dimension.spawnEntity("cosmos:astro_miner_base", center);
+		let base = block.dimension.spawnEntity("cosmos:astro_miner_base", center);
+		setup_ui_button(base, ButtonSlot, "Recall");
+		return base;
 	}
 } export default data;
 
+const buttons = []; machine_buttons.set('cosmos:astro_miner_base', buttons)
+buttons[ButtonSlot] = function (entity, item) {
+	const container = entity.getComponent('minecraft:inventory').container;
+	let info = load_dynamic_object(entity, "multi_block_data");
+
+	let miner = world.getEntity(info.miner_id);
+	if(miner?.isValid){
+		let miner_info = load_dynamic_object(miner, "vehicle_data");
+		if(miner_info.ai_state > 1 && miner_info.ai_state < 4){
+			miner_info.ai_state = 4;
+			miner_info.path_blocked_count = 0;
+			save_dynamic_object(miner, miner_info, "vehicle_data")
+		}
+	}
+	item.nameTag = "Recall"
+	container.setItem(ButtonSlot, item)
+}
+
 world.beforeEvents.playerInteractWithEntity.subscribe((event) => {
-	if(event.target.typeId == "cosmos:astro_miner_base" && event.itemStack.typeId == "cosmos:astro_miner_item"){
+	if(event.target.typeId == "cosmos:astro_miner_base" && event.itemStack?.typeId == "cosmos:astro_miner_item"){
 		const { target: base, itemStack: item } = event;
 		let miner_data = load_dynamic_object(base, "multi_block_data") ?? {};
 		if(miner_data?.miner_id) return;
