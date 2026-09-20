@@ -19,7 +19,7 @@ FAIL_RETURNPATHBLOCKED = 5;
 FAIL_ANOTHERWASLINKED = 8;
 */
 
-const facing_yaw = {north: 180, south: 0, west: 270, east: 90};
+const facing_yaw = {north: 180, south: 0, west: 90, east: 270};
 
 const unbreakable_blocks = [
     "minecraft:water", "minecraft:lava", "minecraft:bedrock", "minecraft:end_portal", "minecraft:end_frame",
@@ -45,21 +45,18 @@ export default function(entity){
 
     info.ai_state = info.ai_state !== undefined ? info.ai_state: 1;
 
-    console.warn(info.rotation.y, info.targ_rot.y)
     let waypoints = load_dynamic_object(entity, "vehicle_data", "waypoints");
     let minepoints = load_dynamic_object(entity, "vehicle_data", "minepoints");
 
     info.stopForTurn = !check_rotation(info.rotation, info);
-    console.warn(JSON.stringify(waypoints))
 
     if(info.ai_face != info.last_facing){
         info.last_facing = info.ai_face;
-        broke_blocks(entity, 12, info.ai_face, 0, info)
-        broke_blocks(entity, 12, info.ai_face, 1, info)
-        broke_blocks(entity, 12, info.ai_face, 2, info)
+        broke_blocks(entity, 0, info.ai_face, 12, info)
+        broke_blocks(entity, 1, info.ai_face, 12, info)
+        broke_blocks(entity, 2, info.ai_face, 12, info)
     }
 
-    console.warn(JSON.stringify(waypoints), "sss")
     switch(info.ai_state) {
         case 1:
             let base = world.getEntity(info.base_id);
@@ -71,7 +68,6 @@ export default function(entity){
             if(!move_to_target(entity, info, waypoints, minepoints)){
                 broke_blocks(entity, 2, info.ai_face, 2, info);
             }
-            console.warn(JSON.stringify(waypoints))
             save_dynamic_object(entity, waypoints, "vehicle_data", "waypoints");
             save_dynamic_object(entity, minepoints, "vehicle_data", "minepoints");
             break;
@@ -97,6 +93,8 @@ export default function(entity){
             if(move_to_pos(entity.location, waypoints[waypoints.length - 1], true, info)) waypoints.pop()
             save_dynamic_object(entity, waypoints, "vehicle_data", "waypoints");
 
+            broke_blocks(entity, 1, info.ai_face, 4, info);
+
             break;
         case 5:
             info.speed = 0.022 / 1.6;
@@ -107,6 +105,7 @@ export default function(entity){
                 info.speed = 0.022;
                 info.rot_speed = 1.5;
             }
+
             break;
     }
     
@@ -170,6 +169,9 @@ function broke_blocks(miner, dist, ai_face, limit, info){
         return false;
     }
 
+    const headings = {down: {x: 0, y: -1, z: 0}, up: {x: 0, y: 1, z: 0}, 
+    south: {x: 0, y: 0, z: 1}, north: {x: 0, y: 0, z: -1}, east: {x: 1, y: 0, z: 0}, west: {x: -1, y: 0, z: 0}}
+
     const headings2 = {down: {x: 0, y: -3, z: 0}, up: {x: 0, y: 2, z: 0}, 
     south: {x: 0, y: 0, z: 2}, north: {x: 0, y: 0, z: -3}, east: {x: 2, y: 0, z: 0}, west: {x: -3, y: 0, z: 0}}
 
@@ -179,8 +181,9 @@ function broke_blocks(miner, dist, ai_face, limit, info){
     if(dist == 2){
         in_front.x += headings2[ai_face].x; in_front.y += headings2[ai_face].y; in_front.z += headings2[ai_face].z; 
     }else{
-        if(["up", "south", "west"].includes(ai_face)) dist++;
-        if(dist > 0){ in_front.x += dist; in_front.y += dist; in_front.z += dist; }
+        if(["down", "north", "west"].includes(ai_face)) dist++;
+        if(dist > 0){ in_front.x += headings[ai_face].x * dist; in_front.y += headings[ai_face].y * dist;
+            in_front.z += headings[ai_face].z * dist; }
     }
 
     if(JSON.stringify(in_front) != info.mine_last && info.ai_state != 1){
@@ -206,7 +209,7 @@ function broke_blocks(miner, dist, ai_face, limit, info){
     info.try_block_limit = limit;
     let is_way_barred = false;
 
-    if(in_front.y == Math.floor(info.base_pos.y) && in_front.x == Math.floor(info.base_pos.x) - ((info.base_facing == "east") ? 1 : 0) && in_front.z == Math.floor(info.base_pos.z) - ((info.base_facing == "south") ? 1 : 0)){
+    if(in_front.y == Math.floor(info.base_pos.y) && in_front.x == Math.floor(info.base_pos.x) - ((info.base_facing == "east") ? 0 : 1) && in_front.z == Math.floor(info.base_pos.z) - ((info.base_facing == "south") ? 1 : 0)){
         try_back_in(miner, info);
         return false;
     }
@@ -218,6 +221,12 @@ function broke_blocks(miner, dist, ai_face, limit, info){
         let block = miner.dimension.getBlock(vector);
         if(block && !block.isAir){
             if(!unbreakable_blocks.includes(block.typeId) && !block.hasTag("wire") && !block.hasTag("pipe")){
+                let item = block.getItemStack();
+                try{
+                    miner.getComponent('minecraft:inventory').container.addItem(item);
+                }catch{
+                    block.dimension.spawnItem(item, block.location);
+                }
                 block.setPermutation(BlockPermutation.resolve("minecraft:air"))
             }else is_way_barred = true;
         }
@@ -290,7 +299,6 @@ function move_to_target(miner, info, waypoints, minepoints){
     if(move_to_pos(miner.location, info.pos_target, false, info)){
         info.ai_state = 3;
         waypoints.push({x: info.pos_target.x, y: info.pos_target.y, z: info.pos_target.z});
-        console.warn(JSON.stringify(waypoints))
         set_mine_points(miner, minepoints, info);
         return true;
     }
@@ -436,12 +444,13 @@ function check_rotation(rot, info){
             rot.y += info.rot_speed;
             if(rot.y > info.targ_rot.y) rot.y = info.targ_rot.y;
         }
-        console.warn(rot.y)
         flag = false;
     }
 
-    if(rot.x > 360 || rot.x < 0) rot.x %= 360;
-    if(rot.y > 360 || rot.y < 0) rot.y %= 360;
+    if(rot.y > 360) rot.y %= 360;
+    if(rot.y < 0) rot.y += 360;
+
+    rot.x = Math.max(-90, Math.min(90, rot.x));
 
     return flag;
 }

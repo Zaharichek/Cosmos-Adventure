@@ -5,7 +5,7 @@
 			"loop": true,
 			"bones": {
 				"bone": {
-					"rotation": ["query.property('cosmos:rotation_x')", "query.property('cosmos:rotation_y')", 0]
+					"rotation": ["query.property('cosmos:rotation_x')/2", "query.property('cosmos:rotation_y')", 0]
 				}
 			}
 		}
